@@ -7,7 +7,7 @@ from src.utils import Style
 from src.utils import mkdir as local_mkdir
 
 from ..backend import Backend
-from .sdk import get_file, list_dir, mkdir, put_file, refresh_access_token
+from .sdk import get_file, list_dir, mkdir, put_file  # , refresh_access_token
 from .sdk.exceptions import BaiduError
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class BaiduBackend(Backend):
         await super(BaiduBackend, self).mkdir(path)
         if not isinstance(path, Path):
             path = Path(path)
-        
+
         await mkdir(path)
 
     async def rmdir(self, path: StrPath) -> None:
@@ -42,7 +42,7 @@ class BaiduBackend(Backend):
 
         if isinstance(path, str):
             path = Path(path)
-        
+
         try:
             return sorted(await list_dir(path))
         except BaiduError as err:
@@ -101,7 +101,7 @@ class BaiduBackend(Backend):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
-        
+
         for t, name in await self.list_dir(remote_fp):
             local = local_fp / name
             remote = remote_fp / name
