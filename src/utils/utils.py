@@ -10,7 +10,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def get_md5(path: Path) -> str:
+def get_md5(path: Path):
     if not path.is_file():
         raise ValueError("path must be a file")
     return md5(path.read_bytes()).hexdigest()

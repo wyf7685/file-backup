@@ -86,16 +86,16 @@ async def get_file(local_fp: Path, remote_fp: Path):
                 data = await resp.read()
     except aiohttp.ClientError as err:
         raise BaiduGetFileError(
-            f"下载 {Style.PATH(remote_fp)} 时遇到错误:\n{Style.RED(err)}"
+            f"下载文件 {Style.PATH(remote_fp)} 时遇到错误:\n{Style.RED(err)}"
         ) from err
 
-    logger.debug(f"写入: {Style.PATH_DEBUG(local_fp)}")
+    logger.debug(f"写入文件: {Style.PATH_DEBUG(local_fp)}")
     local_fp.parent.mkdir(parents=True, exist_ok=True)
     try:
         async with aiofiles.open(local_fp, "wb") as f:
             await f.write(data)
     except Exception as err:
         raise BaiduGetFileError(
-            f"写入 {Style.PATH(local_fp)} 时遇到错误:\n{Style.RED(err)}"
+            f"写入文件 {Style.PATH(local_fp)} 时遇到错误:\n{Style.RED(err)}"
         ) from err
     

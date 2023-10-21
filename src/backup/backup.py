@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import shutil
@@ -205,11 +206,12 @@ class Backup(object):
         """获取本地文件列表
 
         Returns:
-            List[Tuple[str, Path]]: 列表元素为元组: ("f"或"d", 相对路径)
+            List[Tuple[str, Path]]: 列表元素为元组: ("file"或"dir", 相对路径)
         """
         res = []
 
         def iter_dir(dir: Path, r: Path) -> None:
+            # self.logger.debug(f"遍历目录: {Style.PATH_DEBUG(dir)}")
             for p in dir.iterdir():
                 if p.is_file():
                     res.append(("file", r / p.name))
@@ -231,7 +233,8 @@ class Backup(object):
         for uuid in [i.uuid for i in self.record]:
             remote_fp = self.remote / uuid / "update.json"
             cache_fp = self.CACHE / f"{uuid}.json"
-            # 检查是否下载成功
+
+            # 下载备份修改记录
             if not await self.client.get_file(cache_fp, remote_fp):
                 raise StopBackup(f"下载备份清单 {remote_fp} 失败")
 
@@ -285,16 +288,20 @@ class Backup(object):
         target = self.remote / uuid
         password = compress_password(uuid)
         archive_dir = self.cache("archive")
+
         self.logger.debug("开始压缩待备份文件...")
         archives = await pack_7zip_multipart(
             archive_dir / f"{uuid}.7z", cache, volume_size=100, password=password
         )
         self.logger.debug("待备份文件分卷压缩完成")
+
         self.logger.debug(f"本地备份文件分卷压缩包目录: {Style.PATH_DEBUG(archive_dir)}")
         self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
-        for archive in archives:
+        async def upload(archive: Path) -> None:
             if not await self.client.put_file(archive, target / archive.name):
                 raise StopBackup(f"上传分卷压缩包 {Style.PATH(archive.name)} 失败")
+        await asyncio.gather(*[upload(i) for i in archives])
+        
         multipart_cache = cache / "multipart.txt"
         multipart_cache.write_text("\n".join(i.name for i in archives))
         if not await self.client.put_file(
@@ -309,6 +316,7 @@ class Backup(object):
         self.check_uuid(uuid)
 
         # 获取本次需要备份的文件
+        self.logger.info("正在比对本地待备份文件...")
         update = await self.get_update_list()
         if not update:
             self.logger.info("本次备份未更新文件...跳过备份")

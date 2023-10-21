@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 class BackupHost(object):
     logger: "Logger" = get_logger("BackupHost").opt(colors=True)
-    # backups: List[Backup] = []
     _last_run: Dict[str, float] = {}
     _running: bool = False
     _task: asyncio.Task[None]

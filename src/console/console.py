@@ -1,3 +1,4 @@
+import asyncio
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -78,7 +79,7 @@ class Console(object):
 
     @classmethod
     async def _run_command(cls, key: str, args: List[str]) -> None:
-        for func in cls._callback[key]:
+        async def call(func: T_Callback):
             try:
                 await func(args)
             except CommandExit as e:
@@ -88,6 +89,7 @@ class Console(object):
                 cls.logger.error(e)
             except Exception as e:
                 cls.logger.error(f"命令 {cls.styled_command(key, *args)} 异常退出: {e}")
+        await asyncio.gather(*[call(func) for func in cls._callback[key]])
 
     @staticmethod
     def parse_cmd(cmd: str) -> List[str]:

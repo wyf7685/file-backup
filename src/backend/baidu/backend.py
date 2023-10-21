@@ -66,7 +66,8 @@ class BaiduBackend(Backend):
                 return True
             except Exception as e:
                 err = e
-        self.logger.debug(f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}")
+        self.logger.debug(f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常")
+        self.logger.debug(err)
         return False
 
     async def put_file(
@@ -89,7 +90,8 @@ class BaiduBackend(Backend):
                 return True
             except BaiduError as e:
                 err = e
-        self.logger.debug(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}")
+        self.logger.debug(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常")
+        self.logger.debug(err)
         return False
 
     async def get_tree(

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from hashlib import md5
@@ -119,20 +120,15 @@ async def put_file(local_fp: Path, remote_fp: Path) -> None:
     block_seq: List[int] = precreate_resp["block_list"]
 
     # 上传切片
-    for seq in block_seq:
+    async def upload_block(seq: int):
         logger.debug(f"上传文件切片: seq={Style.YELLOW(seq)}")
         try:
-            upload_resp = await upload(seq, path, upload_id, block_data[seq])
+            await upload(seq, path, upload_id, block_data[seq])
         except openapi_client.ApiException as err:
             raise BaiduUploadBlockError(
                 f"上传文件 {Style.PATH(path)} 切片({seq}) 时遇到错误:\n{Style.RED(err)}"
             ) from err
-        # # 处理上传切片接口返回值
-        # if upload_resp["errno"] != 0:
-        #     raise BaiduUploadBlockError(
-        #         f"上传文件 {Style.PATH(path)} 切片({seq}) 失败, "
-        #         f"错误码: {Style.RED(upload_resp['errno'])}"
-        #     )
+    await asyncio.gather(*[upload_block(seq) for seq in block_seq])
 
     # 创建文件
     logger.debug(f"远程合并切片文件: {Style.PATH_DEBUG(path)}")

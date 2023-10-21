@@ -1,20 +1,18 @@
 import pathlib as _p
-import typing as _t
+import typing as t
 
-from . import _path
+from . import path as _path
+
 
 VERSION = "0.2.2"
 PATH = _path
 
-BackendType: _t.TypeAlias = _t.Literal["local", "server", "baidu"]
-BackupMode: _t.TypeAlias = _t.Literal[
-    "increment",
-    "compress",
-]
-BackupUpdateType: _t.TypeAlias = _t.Literal["file", "dir", "del"]
-StrPath: _t.TypeAlias = _t.Union[str, _p.Path]
+BackendType = t.Literal["local", "server", "baidu"]
+BackupMode = t.Literal["increment", "compress"]
+BackupUpdateType = t.Literal["file", "dir", "del"]
+StrPath = t.Union[str, _p.Path]
 
-BackupModeSet: _t.Set[str] = set(BackupMode.__args__)  # type: ignore
+BackupModeSet: t.Set[str] = set(BackupMode.__args__)  # type: ignore
 
 
 def _init() -> None:
