@@ -161,6 +161,7 @@ cython_debug/
 
 # wyf7685
 .vscode/
+backup/
 data/
 logs/
 *.7z

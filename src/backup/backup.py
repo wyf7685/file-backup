@@ -20,6 +20,7 @@ from src.utils import (
     pack_7zip,
     pack_7zip_multipart,
     notify,
+    run_sync,
 )
 
 if TYPE_CHECKING:
@@ -223,6 +224,13 @@ class Backup(object):
 
         res.sort(key=lambda x: x[0])
         return res
+    
+    async def get_local_md5(self, fp_list: List[Path]) -> Dict[str, str]:
+        call = run_sync(get_md5)
+        async def _run(p: Path) -> Tuple[str, str]:
+            return str(p), await call(self.local/p)
+        data = await asyncio.gather(*[_run(p) for p in fp_list])
+        return dict(data)
 
     async def get_update_list(self) -> List[BackupUpdate]:
         remote = {}  # type: Dict[str, BackupUpdate]
@@ -231,8 +239,9 @@ class Backup(object):
 
         # 按序遍历历史备份
         for uuid in [i.uuid for i in self.record]:
-            remote_fp = self.remote / uuid / "update.json"
+            self.logger.debug(f"下载 [{Style.CYAN(uuid)}] 的备份清单")
             cache_fp = self.CACHE / f"{uuid}.json"
+            remote_fp = self.remote / uuid / "update.json"
 
             # 下载备份修改记录
             if not await self.client.get_file(cache_fp, remote_fp):
@@ -252,15 +261,17 @@ class Backup(object):
                 elif key in remote and remote[key].type == "del":
                     del remote[key]
 
+        # 计算文件md5值
+        md5_cache = await self.get_local_md5([p for t, p in local_list if t == "file"])
+
         # 对比本地待备份文件
-        md5_cache = {}  # type: Dict[str, str]
         for t, p in local_list:
             key = str(p)
             if t == "dir":
                 if key not in remote:
                     res.append((t, p))
             elif t == "file":
-                md5_cache[key] = get_md5(self.local / p)
+                # md5_cache[key] = get_md5(self.local / p)
                 if key not in remote or (
                     key in remote and not remote[key].check(md5_cache[key])
                 ):
@@ -304,6 +315,7 @@ class Backup(object):
         
         multipart_cache = cache / "multipart.txt"
         multipart_cache.write_text("\n".join(i.name for i in archives))
+        self.logger.debug(f"上传分卷清单: {Style.PATH_DEBUG(multipart_cache)}")
         if not await self.client.put_file(
             multipart_cache, target / multipart_cache.name
         ):
