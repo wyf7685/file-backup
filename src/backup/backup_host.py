@@ -11,7 +11,6 @@ from .backup import Backup
 if TYPE_CHECKING:
     from src.log import Logger
 
-
 class BackupHost(object):
     logger: "Logger" = get_logger("BackupHost").opt(colors=True)
     _last_run: Dict[str, float] = {}
@@ -20,22 +19,9 @@ class BackupHost(object):
     _backup_task: Dict[str, asyncio.Task[None]] = {}
 
     @classmethod
-    async def get_last_run(cls, backup_config: BackupConfig):
-        backup = Backup(backup_config, silent=True)
-        await backup.prepare()
+    async def get_last_run(cls, backup: Backup):
+        await backup.load_record()
         return backup.record[-1].timestamp if backup.record else None
-
-    @classmethod
-    async def should_run(cls, backup: BackupConfig) -> bool:
-        remote_last_run = await cls.get_last_run(backup)
-        local_last_run = cls._last_run.get(backup.name)
-        now = datetime.now().timestamp()
-        if local_last_run is None and remote_last_run is None:
-            return True
-        elif local_last_run is not None:
-            return local_last_run - now > backup.interval
-        else:
-            return remote_last_run is not None and remote_last_run - now > backup.interval
 
     @classmethod
     async def _run(cls) -> None:
@@ -49,8 +35,10 @@ class BackupHost(object):
             for backup in config.backup_list:
                 if backup.name in cls._backup_task:
                     continue
-                if await cls.should_run(backup):
-                    cls.run_backup(backup)
+                now = datetime.now().timestamp()
+                last_run = cls._last_run.get(backup.name)
+                if last_run is None or last_run - now > backup.interval:
+                    await cls.run_backup(backup)
             await asyncio.sleep(1)
 
     @classmethod
@@ -76,7 +64,7 @@ class BackupHost(object):
         cls.logger.info(f"{Style.GREEN('BackupHost')} 已终止")
 
     @classmethod
-    def run_backup(cls, backup: BackupConfig) -> None:
+    async def run_backup(cls, backup: BackupConfig) -> None:
         cls.logger.info(f"创建备份任务: [{Style.CYAN(backup.name)}]")
         cls._last_run[backup.name] = datetime.now().timestamp()
         task = asyncio.create_task(Backup(backup).apply())

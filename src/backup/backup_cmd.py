@@ -23,7 +23,7 @@ async def cmd_backup(args: List[str]) -> None:
     if backup is None:
         raise CommandExit(f"未找到名为 [{Style.CYAN(name)}] 的备份项")
 
-    BackupHost.run_backup(backup)
+    await BackupHost.run_backup(backup)
 
 
 @Console.register("stop", "退出程序")
