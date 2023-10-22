@@ -35,13 +35,14 @@ class Backup(object):
     _backend: Type[Backend]
     _cache: Path
 
-    def __init__(self, backup_config: BackupConfig) -> None:
+    def __init__(self, backup_config: BackupConfig, silent: bool = False) -> None:
         self.config = backup_config
         self._backend = get_backend()
         self._cache = PATH.CACHE / "backup" / get_uuid().split("-")[0]
         name = self.config.name
         self.logger = get_logger(name).opt(colors=True)
-        self.logger.success(f"{Style.GREEN('backup')} [{Style.CYAN(name)}] 初始化成功")
+        if not silent:
+            self.logger.success(f"{Style.GREEN('backup')} [{Style.CYAN(name)}] 初始化成功")
 
     @property
     def CACHE(self) -> Path:
@@ -61,7 +62,7 @@ class Backup(object):
     async def apply(self):
         while True:
             try:
-                self.client = self._backend()
+                await self.prepare()
                 await self.make_backup()
                 self.logger.success("备份完成")
             except StopBackup as e:
@@ -167,12 +168,15 @@ class Backup(object):
         ]
         await notify(title, "\n".join(body))
 
+    async def prepare(self) -> None:
+        self.client = self._backend()
+        await self.client.mkdir(str(self.remote))
+        await self.load_record()
+
     async def make_backup(self) -> None:
         start = datetime.now()
         await self._notify_before_backup(start)
 
-        await self.client.mkdir(str(self.remote))
-        await self.load_record()
         if self.config.mode == "compress":
             await self.make_compress()
         elif self.config.mode == "increment":

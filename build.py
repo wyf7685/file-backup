@@ -22,6 +22,7 @@ def build(name: str):
         # "--hidden-import aiofiles",
         "--hidden-import src.backend.local",
         "--hidden-import src.backend.server",
+        "--hidden-import src.backend.baidu",
         "--noupx",
         "main.py",
     ]

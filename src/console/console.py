@@ -116,9 +116,10 @@ class Console(object):
         return [i for i in args if i]
 
     @staticmethod
-    def check_arg_length(args: List[str], *length: int) -> List[str]:
-        if len(args) not in length:
-            raise CommandExit(f"应输入 {', '.join(str(i) for i in length)} 个参数")
+    def check_arg_length(args: List[str], length: int, *lengths: int) -> List[str]:
+        arr = [length, *lengths]
+        if len(args) not in arr:
+            raise CommandExit(f"应输入 {', '.join(str(i) for i in arr)} 个参数")
         return args
 
     @staticmethod
