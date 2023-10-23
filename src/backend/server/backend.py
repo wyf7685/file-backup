@@ -63,7 +63,7 @@ class ServerBackend(Backend):
         url = f"{self.config.url}api/{api}"
         try:
             async with self.session.post(url, json=data) as resp:
-                return _Result.parse_obj(await resp.json())
+                return _Result.model_validate(await resp.json())
         except Exception as e:
             return _Result(status="error", message=f"{e.__class__.__name__}: {e}")
 

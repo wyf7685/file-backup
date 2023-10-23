@@ -3,8 +3,7 @@ import typing as t
 
 from . import path as _path
 
-
-VERSION = "0.2.2"
+VERSION = "0.2.4"
 PATH = _path
 
 BackendType = t.Literal["local", "server", "baidu"]
@@ -15,7 +14,7 @@ StrPath = t.Union[str, _p.Path]
 BackupModeSet: t.Set[str] = set(BackupMode.__args__)  # type: ignore
 
 
-def _init() -> None:
+def __init() -> None:
     import atexit
     import shutil
     from contextlib import suppress
@@ -30,4 +29,4 @@ def _init() -> None:
     atexit.register(cleanup)
 
 
-_init()
+__init()

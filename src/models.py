@@ -52,11 +52,11 @@ class Config(BaseModel):
     backup_list: List[BackupConfig] = Field(default_factory=list)
 
     def save(self, path: Path = PATH.CONFIG) -> None:
-        path.write_text(self.json(indent=4))
+        path.write_text(self.model_dump_json(indent=4))
 
     def reload(self) -> "Config":
         config = _init_config()
-        for attr in list(self.__fields__):
+        for attr in list(self.model_fields):
             setattr(self, attr, getattr(config, attr))
         return self
 
@@ -101,7 +101,8 @@ def _init_config() -> Config:
 
     if PATH.CONFIG.exists():
         try:
-            config = Config.parse_file(PATH.CONFIG)
+            config_json = PATH.CONFIG.read_text(encoding="utf-8")
+            config = Config.model_validate_json(config_json)
         except Exception as e:
             logger.exception(f"解析配置文件时发生错误: {Style.RED(e)}")
             fp = PATH.DATA / "config.json.bak"
@@ -114,7 +115,7 @@ def _init_config() -> Config:
     set_log_level(config.log_level)
 
     is_experiment = False
-    for key in config.experiment.__fields__.keys():
+    for key in config.experiment.model_fields.keys():
         if getattr(config.experiment, key, False):
             logger.warning(f"实验性功能 {Style.YELLOW(key)} 已启用")
             is_experiment = True

@@ -19,11 +19,6 @@ class BackupHost(object):
     _backup_task: Dict[str, asyncio.Task[None]] = {}
 
     @classmethod
-    async def get_last_run(cls, backup: Backup):
-        await backup.load_record()
-        return backup.record[-1].timestamp if backup.record else None
-
-    @classmethod
     async def _run(cls) -> None:
         while cls._running:
             # 判断备份任务是否已完成

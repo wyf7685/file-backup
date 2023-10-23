@@ -94,7 +94,7 @@ class Backup(object):
 
         raw = cache_fp.read_text()
         os.remove(cache_fp)
-        self.record = [BackupRecord.parse_obj(i) for i in json.loads(raw)]
+        self.record = [BackupRecord.model_validate(i) for i in json.loads(raw)]
 
     async def add_record(self, uuid: str) -> None:
         """创建一个新备份
@@ -253,7 +253,7 @@ class Backup(object):
 
             # 将修改记录转换为对象
             remote_upd = [
-                BackupUpdate.parse_obj(i)
+                BackupUpdate.model_validate(i)
                 for i in json.loads(cache_fp.read_text("utf-8"))
             ]
 
