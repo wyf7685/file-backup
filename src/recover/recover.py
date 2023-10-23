@@ -1,4 +1,3 @@
-from datetime import datetime
 import json
 import os
 import shutil
@@ -10,7 +9,7 @@ from src.const import PATH
 from src.const.exceptions import StopRecovery
 from src.log import get_logger
 from src.models import *
-from src.utils import mkdir, unpack_7zip, compress_password, notify
+from src.utils import compress_password, mkdir, unpack_7zip
 
 if TYPE_CHECKING:
     from src.log import Logger
@@ -65,40 +64,17 @@ class Recover(object):
             if record.uuid == uuid:
                 return record
 
-    async def _notify_before_recover(self, uuid: str) -> None:
-        title = f"开始恢复: {self.config.name}"
-        body = [
-            f"路径: {self.config.local_path}",
-            f"备份uuid: {uuid}"
-        ]
-        await notify(title, "\n".join(body))
-    
-    async def _notify_after_recover(self, start_time: datetime) -> None:
-        now = datetime.now()
-        delta = now - start_time
-
-        title = f"恢复完成: {self.config.name}"
-        body = [
-            f"恢复耗时: {delta.total_seconds()}s",
-            f"路径: {self.config.local_path}",
-        ]
-        await notify(title, "\n".join(body))
-
     async def apply(self, record: BackupRecord) -> None:
         self.logger.info(f"正在恢复备份: {Style.CYAN(self.config.name)} - {Style.GREEN(record.timestr)}")
         self.logger.debug(f"备份记录: {Style.YELLOW(record)}")
         self.logger.info(f"备份uuid: [{Style.CYAN(record.uuid)}]")
         self.client = self._backend()
-        
-        start = datetime.now()
-        await self._notify_before_recover(record.uuid)
 
         try:
             if self.config.mode == "compress":
                 await self.apply_compress(record)
             elif self.config.mode == "increment":
                 await self.apply_incremental(record)
-            await self._notify_after_recover(start)
         finally:
             shutil.rmtree(self.CACHE)
 

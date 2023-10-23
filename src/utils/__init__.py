@@ -8,4 +8,3 @@ from .utils import get_md5 as get_md5
 from .utils import get_uuid as get_uuid
 from .utils import mkdir as mkdir
 from .utils import run_sync as run_sync
-from .win_toast import notify as notify

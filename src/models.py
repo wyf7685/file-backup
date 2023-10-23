@@ -41,7 +41,6 @@ class BackupConfig(BaseModel):
 
 
 class ExperimentConfig(BaseModel):
-    enable_notify: bool = Field(default=True)
     log_html: bool = Field(default=False)
 
 

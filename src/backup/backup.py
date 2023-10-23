@@ -2,9 +2,9 @@ import asyncio
 import json
 import os
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Type
+from typing import TYPE_CHECKING, Dict, List, Tuple, Type
 
 from src.backend import Backend, get_backend
 from src.const import PATH
@@ -19,7 +19,6 @@ from src.utils import (
     mkdir,
     pack_7zip,
     pack_7zip_multipart,
-    notify,
     run_sync,
 )
 
@@ -143,46 +142,16 @@ class Backup(object):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.config.name})"
 
-    async def _notify_before_backup(self, time: datetime) -> None:
-        timestr = time.strftime("%Y-%m-%d %H:%M:%S")
-
-        title = f"开始备份: {self.config.name}"
-        body = [
-            f"备份路径: {self.config.local_path}",
-            f"当前时间: {timestr}",
-            f"备份模式: {self.config.mode}",
-        ]
-        await notify(title, "\n".join(body))
-
-    async def _notify_after_backup(self, start_time: datetime) -> None:
-        now = datetime.now()
-        delta = now - start_time
-        next_time = now + timedelta(seconds=self.config.interval)
-        timestr = next_time.strftime("%Y-%m-%d %H:%M:%S")
-
-        title = f"备份完成: {self.config.name}"
-        body = [
-            f"备份耗时: {delta.total_seconds()}s",
-            f"备份路径: {self.config.local_path}",
-            f"预计下次备份: {timestr}",
-        ]
-        await notify(title, "\n".join(body))
-
     async def prepare(self) -> None:
         self.client = self._backend()
         await self.client.mkdir(str(self.remote))
         await self.load_record()
 
     async def make_backup(self) -> None:
-        start = datetime.now()
-        await self._notify_before_backup(start)
-
         if self.config.mode == "compress":
             await self.make_compress()
         elif self.config.mode == "increment":
             await self.make_incremental()
-
-        await self._notify_after_backup(start)
 
     # 模式: 压缩备份
     async def make_compress(self) -> None:
@@ -228,11 +197,13 @@ class Backup(object):
 
         res.sort(key=lambda x: x[0])
         return res
-    
+
     async def get_local_md5(self, fp_list: List[Path]) -> Dict[str, str]:
         call = run_sync(get_md5)
+
         async def _run(p: Path) -> Tuple[str, str]:
-            return str(p), await call(self.local/p)
+            return str(p), await call(self.local / p)
+
         data = await asyncio.gather(*[_run(p) for p in fp_list])
         return dict(data)
 
@@ -312,11 +283,13 @@ class Backup(object):
 
         self.logger.debug(f"本地备份文件分卷压缩包目录: {Style.PATH_DEBUG(archive_dir)}")
         self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
+
         async def upload(archive: Path) -> None:
             if not await self.client.put_file(archive, target / archive.name):
                 raise StopBackup(f"上传分卷压缩包 {Style.PATH(archive.name)} 失败")
+
         await asyncio.gather(*[upload(i) for i in archives])
-        
+
         multipart_cache = cache / "multipart.txt"
         multipart_cache.write_text("\n".join(i.name for i in archives))
         self.logger.debug(f"上传分卷清单: {Style.PATH_DEBUG(multipart_cache)}")
