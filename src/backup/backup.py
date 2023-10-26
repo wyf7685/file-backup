@@ -246,7 +246,6 @@ class Backup(object):
                 if key not in remote:
                     res.append((t, p))
             elif t == "file":
-                # md5_cache[key] = get_md5(self.local / p)
                 if key not in remote or (
                     key in remote and not remote[key].check(md5_cache[key])
                 ):

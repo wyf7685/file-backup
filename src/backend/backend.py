@@ -1,4 +1,3 @@
-from io import BytesIO
 from typing import TYPE_CHECKING, Any, List, Tuple
 
 import aiofiles

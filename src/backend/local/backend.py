@@ -1,5 +1,4 @@
 import shutil
-from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple
 

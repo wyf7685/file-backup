@@ -19,7 +19,6 @@ def build(name: str):
         "--distpath .",
         f"--name {name}",
         "-i src/shell32_172.ico",
-        # "--hidden-import aiofiles",
         "--hidden-import src.backend.local",
         "--hidden-import src.backend.server",
         "--hidden-import src.backend.baidu",

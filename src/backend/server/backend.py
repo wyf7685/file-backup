@@ -1,7 +1,6 @@
 import asyncio
 from base64 import b64decode, b64encode
 from copy import deepcopy
-from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Tuple, TypeAlias
 
@@ -102,13 +101,9 @@ class ServerBackend(Backend):
             try:
                 res = await self._request("get_file", path=str(remote_fp))
                 if res.success:
-                    data = b64decode(res.data["file"])
-
                     async with aiofiles.open(local_fp, "wb") as f:
-                        await f.write(data)
-
+                        await f.write(b64decode(res.data["file"]))
                     return True
-
                 err = res.message
                 break
             except Exception as e:

@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Tuple
 
 import aiofiles
 
-from src.const import PATH
 from src.log import get_logger
 from src.utils import Style, run_sync
 
@@ -19,6 +18,9 @@ from ..exceptions import (BaiduUploadBlockError, BaiduUploadCreateError,
 from ..openapi_client.api import fileupload_api
 from ..sdk_config import config
 
+class BytesIOwithName(BytesIO):
+    name: str
+
 
 async def process_file(local_fp: Path) -> Tuple[int, List[bytes]]:
     """对文件进行切片, 分片大小为4MB"""
@@ -27,17 +29,21 @@ async def process_file(local_fp: Path) -> Tuple[int, List[bytes]]:
     file_size = len(content)
 
     block_data = []
-    i = 0
     while len(content) > BLOCK_SIZE:
-        start, end = i * BLOCK_SIZE, (i + 1) * BLOCK_SIZE
-        block_data.append(content[start:end])
-        content = content[end:]
+        block_data.append(content[:BLOCK_SIZE])
+        content = content[BLOCK_SIZE:]
     block_data.append(content)
 
     return file_size, block_data
 
 
-async def precreate(path: str, file_size: int, block_list: List[str]) -> Dict[str, Any]:
+async def precreate(path: str, file_size: int, block_md5: List[str]) -> Dict[str, Any]:
+    """文件预创建
+
+    :param path: 远程文件路径
+    :param file_size: 文件总大小(Byte)
+    :param block_md5: 文件切片md5列表
+    """
     with openapi_client.ApiClient() as client:
         api = fileupload_api.FileuploadApi(client)
         call = lambda: api.xpanfileprecreate(
@@ -46,7 +52,7 @@ async def precreate(path: str, file_size: int, block_list: List[str]) -> Dict[st
             isdir=0,
             size=file_size,
             autoinit=1,
-            block_list=json.dumps(block_list),
+            block_list=json.dumps(block_md5),
             rtype=3,
         )
         resp = await run_sync(call)()
@@ -56,10 +62,14 @@ async def precreate(path: str, file_size: int, block_list: List[str]) -> Dict[st
 async def upload(
     partseq: int, path: str, upload_id: str, block: bytes
 ) -> Dict[str, Any]:
-    cache_fp = PATH.CACHE / md5(block).hexdigest()
+    """文件切片上传
+    :param partseq: 文件切片编号
+    :param path: 远程文件路径
+    :param upload_id: 预上传接口获取的上传任务id
+    :param block: 文件切片"""
 
-    async with aiofiles.open(cache_fp, "wb") as f:
-        await f.write(block)
+    file = BytesIOwithName(block)
+    file.name = md5(block).hexdigest()
 
     with openapi_client.ApiClient() as client:
         api = fileupload_api.FileuploadApi(client)
@@ -69,10 +79,9 @@ async def upload(
             path=path,
             uploadid=upload_id,
             type="tmpfile",
-            file=cache_fp.open("rb"),
+            file=file,
         )
         resp = await run_sync(call)()
-    os.remove(cache_fp)
     
     return resp
 

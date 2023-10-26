@@ -3,7 +3,7 @@ import typing as t
 
 from . import path as _path
 
-VERSION = "0.2.4"
+VERSION = "0.2.5"
 PATH = _path
 
 BackendType = t.Literal["local", "server", "baidu"]

@@ -161,7 +161,6 @@ class Recover(object):
             src = cache / uuid / upd.path
             dst = result / upd.path
 
-            # TODO: 优化算法，分离文件和目录的提取流程
             match upd.type:
                 case "file":
                     mkdir(dst.parent)
