@@ -8,7 +8,7 @@ def build(name: str):
     import os
     import shutil
 
-    p = popen("poetry")
+    p = popen("poetry about")
     p.communicate()
     POETRY = p.returncode == 0
     env_setup_cmd = "poetry install" if POETRY else "pip install -r requirements.txt"

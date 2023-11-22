@@ -8,27 +8,26 @@ import aiohttp
 from src.log import get_logger
 from src.utils import Style, run_sync
 
-from .. import openapi_client
 from ..const import *
 from ..exceptions import BaiduGetFileError, BaiduListDirectoryError
-from ..openapi_client.api import multimediafile_api
+from ..openapi_client import ApiClient, ApiException
+from ..openapi_client.api.multimediafile_api import MultimediafileApi
 from ..sdk_config import config
 from .list_dir_api import listall
 
 
 async def filemetas(fsid: int):
-    with openapi_client.ApiClient() as client:
-        api = multimediafile_api.MultimediafileApi(client)
-        call = lambda: api.xpanmultimediafilemetas(
-            access_token=config.access_token,
-            fsids=json.dumps([fsid]),
-            thumb="0",
-            extra="0",
-            dlink="1",
-            needmedia=0,
-        )
-        resp = await run_sync(call)()
-    return resp
+    with ApiClient() as client:
+        return await run_sync(
+            lambda: MultimediafileApi(client).xpanmultimediafilemetas(
+                access_token=config.access_token,
+                fsids=json.dumps([fsid]),
+                thumb="0",
+                extra="0",
+                dlink="1",
+                needmedia=0,
+            )
+        )()
 
 
 def get_fsid(file_list: List[Dict[str, Any]], file_name: str) -> Optional[int]:
@@ -44,7 +43,7 @@ async def get_file(local_fp: Path, remote_fp: Path):
     logger.debug(f"获取目录文件清单: {Style.PATH_DEBUG(remote_fp.parent)}")
     try:
         listall_resp = await listall(str(path.parent).replace("\\", "/"))
-    except openapi_client.ApiException as err:
+    except ApiException as err:
         raise BaiduListDirectoryError(
             f"获取网盘 {Style.PATH(remote_fp.parent)} 文件清单时遇到错误:\n{Style.RED(err)}"
         ) from err
@@ -62,7 +61,7 @@ async def get_file(local_fp: Path, remote_fp: Path):
     logger.debug(f"获取文件信息: {Style.PATH_DEBUG(remote_fp)}")
     try:
         filemetas_resp = await filemetas(fsid)
-    except openapi_client.ApiException as err:
+    except ApiException as err:
         # if isinstance(err.body, bytes) and err.body.decode('utf-8'):
 
         raise BaiduGetFileError(
@@ -98,4 +97,3 @@ async def get_file(local_fp: Path, remote_fp: Path):
         raise BaiduGetFileError(
             f"写入文件 {Style.PATH(local_fp)} 时遇到错误:\n{Style.RED(err)}"
         ) from err
-    
