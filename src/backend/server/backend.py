@@ -1,6 +1,8 @@
 import asyncio
+import time
 from base64 import b64decode, b64encode
 from copy import deepcopy
+from hashlib import md5
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Tuple, TypeAlias
 
@@ -44,6 +46,7 @@ class ServerBackend(Backend):
     logger: "Logger"
     config: ServerConfig
     session: ClientSession
+    headers: Dict[str, str]
 
     def __init__(self) -> None:
         from src.models import config
@@ -51,17 +54,25 @@ class ServerBackend(Backend):
         super(ServerBackend, self).__init__()
 
         self.config = config.backend.server
-        headers = deepcopy(HEADERS)
-        headers["X-Token"] = self.config.token
-        self.session = ClientSession(headers=headers)
+        self.headers = deepcopy(HEADERS)
+        self.headers["X-7685-Token"] = self.config.token
+        self.session = ClientSession()
 
         if not self.config.url.endswith("/"):
             self.config.url += "/"
 
     async def _request(self, api: str, **data) -> _Result:
         url = f"{self.config.url}api/{api}"
+
+        salt = str(time.time())
+        hash = self.config.api_key + salt
+        hash = md5(hash.encode("utf-8")).hexdigest()
+        headers = deepcopy(self.headers)
+        headers["X-7685-Salt"] = salt
+        headers["X-7685-Hash"] = hash
+        
         try:
-            async with self.session.post(url, json=data) as resp:
+            async with self.session.post(url, json=data, headers=headers) as resp:
                 return _Result.model_validate(await resp.json())
         except Exception as e:
             return _Result(status="error", message=f"{e.__class__.__name__}: {e}")

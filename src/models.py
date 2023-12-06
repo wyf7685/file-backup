@@ -16,7 +16,7 @@ class LocalConfig(BaseModel):
 class ServerConfig(BaseModel):
     url: str = Field(default="http://127.0.0.1:8008")
     token: str = Field(default="token")
-
+    api_key: str = Field(default="api_key")
 
 class BaiduConfig(BaseModel):
     access_token: str = Field(default="access_token")
