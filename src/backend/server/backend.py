@@ -63,6 +63,9 @@ class ServerBackend(Backend):
 
     async def _request(self, api: str, **data) -> _Result:
         url = f"{self.config.url}api/{api}"
+        for k in data:
+            if isinstance(data[k], Path):
+                data[k] = str(data[k]).replace("\\", "/")
 
         salt = str(time.time())
         hash = self.config.api_key + salt
@@ -79,19 +82,19 @@ class ServerBackend(Backend):
 
     async def mkdir(self, path: StrPath) -> None:
         await super(ServerBackend, self).mkdir(path)
-        res = await self._request("mkdir", path=str(path))
+        res = await self._request("mkdir", path=path)
         if res.failed:
             self.logger.error(res.message)
 
     async def rmdir(self, path: StrPath) -> None:
         await super(ServerBackend, self).rmdir(path)
-        res = await self._request("rmdir", path=str(path))
+        res = await self._request("rmdir", path=path)
         if res.failed:
             self.logger.error(res.message)
 
     async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         await super(ServerBackend, self).list_dir(path)
-        res = await self._request("list_dir", path=str(path))
+        res = await self._request("list_dir", path=path)
         if res.failed:
             self.logger.error(res.message)
             return []
@@ -110,7 +113,7 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                res = await self._request("get_file", path=str(remote_fp))
+                res = await self._request("get_file", path=remote_fp)
                 if res.success:
                     async with aiofiles.open(local_fp, "wb") as f:
                         await f.write(b64decode(res.data["file"]))
@@ -144,7 +147,7 @@ class ServerBackend(Backend):
                     data = await f.read()
                 res = await self._request(
                     "put_file",
-                    path=str(remote_fp),
+                    path=remote_fp,
                     file=b64encode(data).decode("utf-8"),
                 )
                 if res.success:
