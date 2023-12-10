@@ -51,7 +51,7 @@ class Config(BaseModel):
     backup_list: List[BackupConfig] = Field(default_factory=list)
 
     def save(self, path: Path = PATH.CONFIG) -> None:
-        path.write_text(self.model_dump_json(indent=4))
+        path.write_text(self.model_dump_json(indent=4), encoding="utf-8")
 
     def reload(self) -> "Config":
         config = _init_config()
