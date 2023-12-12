@@ -44,7 +44,7 @@ class BackupHost(object):
         cls._task = asyncio.create_task(cls._run())
 
     @classmethod
-    async def stop(cls):
+    async def stop(cls) -> None:
         if not cls._running:
             return
 
