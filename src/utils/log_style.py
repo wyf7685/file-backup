@@ -1,4 +1,5 @@
 import typing as _t
+import typing_extensions as _te
 
 
 class _StyleInt(int):
@@ -19,7 +20,7 @@ class _StyleInt(int):
             text = f"<{key}>{text}</{key}>"
         return text
 
-    def __or__(self, value: int) -> _t.Self:
+    def __or__(self, value: int) -> _te.Self:
         return type(self)(int(self) | int(value))
 
     def __repr__(self) -> str:
