@@ -13,8 +13,8 @@ from src.utils import get_uuid
 from .console import Console
 
 
-def backend() -> Backend:
-    return get_backend()()
+async def backend() -> Backend:
+    return await get_backend().create()
 
 
 @Console.register("help", "显示此帮助列表", alias=["?", "h"])
@@ -69,7 +69,8 @@ async def cmd_query(args: List[str]) -> None:
 
     remote_fp = backup.get_remote() / "backup.json"
     cache_fp = PATH.CACHE / get_uuid()
-    if not await backend().get_file(cache_fp, remote_fp):
+    client = await backend()
+    if not await client.get_file(cache_fp, remote_fp):
         raise CommandExit(f"[{Style.CYAN(name)}] 的备份记录下载失败")
 
     raw = json.loads(cache_fp.read_text())

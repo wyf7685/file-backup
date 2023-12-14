@@ -11,7 +11,6 @@ def greet() -> None:
     logger.info(f"配置文件: {Style.PATH(PATH.CONFIG)}")
     logger.info(f"缓存目录: {Style.PATH(PATH.CACHE)}")
     logger.info(f"备份后端: {Style.CYAN(config.backend.type)}")
-    # logger.info(f"运行模式: [{Style.GREEN('Async')}]")
 
 
 async def main_async() -> None:
@@ -24,7 +23,7 @@ def main() -> None:
     greet()
 
     try:
-        asyncio.new_event_loop().run_until_complete(main_async())
+        asyncio.run(main_async())
     except KeyboardInterrupt:
         logger.warning("Interrupted")
     except Exception as e:

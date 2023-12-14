@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import TYPE_CHECKING, Any, List, Tuple, Self
 
-import aiofiles
+import aiofiles as _
 
 from src.const import *
 from src.log import get_logger
@@ -19,6 +19,10 @@ class Backend(object):
 
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__).opt(colors=True)
+    
+    @classmethod
+    async def create(cls) -> Self:
+        return cls()
 
     async def mkdir(self, path: StrPath) -> None:
         self.logger.debug(f"创建目录: {_color(path)}")

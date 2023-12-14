@@ -11,15 +11,23 @@ class Error(Exception):
         return f"{self.__class__.__name__} - {self.msg}"
 
 
-class StopOperation(Error):
+class OperationError(Error):
     uuid: Optional[str] = None
+
+
+class StopOperation(OperationError):
+    pass
+
+
+class RestartOperation(OperationError):
+    pass
 
 
 class StopBackup(StopOperation):
     pass
 
 
-class RestartBackup(StopOperation):
+class RestartBackup(RestartOperation):
     pass
 
 
@@ -49,4 +57,3 @@ class AccountLoginFailed(LoginError):
 
 class RegisterFailed(AccountError):
     pass
-

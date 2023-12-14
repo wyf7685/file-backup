@@ -19,8 +19,11 @@ class ServerConfig(BaseModel):
     api_key: str = Field(default="api_key")
 
 class BaiduConfig(BaseModel):
+    app_id: str = Field(default="app_id")
+    app_secret: str = Field(default="app_secret")
     access_token: str = Field(default="access_token")
     refresh_token: str = Field(default="refresh_token")
+    expire: int = Field(default=0)
 
 
 class BackendConfig(BaseModel):

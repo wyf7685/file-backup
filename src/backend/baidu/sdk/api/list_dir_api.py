@@ -1,14 +1,13 @@
 from pathlib import Path
 from typing import List, Tuple
 
-from src.log import get_logger
 from src.utils import Style, run_sync
 
 from ..const import *
 from ..exceptions import BaiduListDirectoryError
 from ..openapi_client import ApiClient, ApiException
 from ..openapi_client.api.multimediafile_api import MultimediafileApi
-from ..sdk_config import config
+from ..sdk_config import config, get_logger
 
 
 async def listall(path: str):
@@ -27,7 +26,7 @@ async def listall(path: str):
 
 
 async def list_dir(path: Path) -> List[Tuple[str, str]]:
-    logger = get_logger("Baidu:list_dir").opt(colors=True)
+    logger = get_logger("list_dir").opt(colors=True)
     logger.debug(f"列出目录: {Style.PATH_DEBUG(path)}")
 
     try:

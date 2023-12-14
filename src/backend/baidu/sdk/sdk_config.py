@@ -2,37 +2,47 @@ from src.models import BaiduConfig, config as _config
 
 config: BaiduConfig = _config.backend.baidu
 
-# _last_refresh: float = 0.0
+_refreshing: bool = False
 
 
-# def refresh_access_token() -> None:
-#     global _last_refresh
-#     import time
-#     from src.log import get_logger
-#     from src.utils import Style
-#     from . import openapi_client
-#     from .openapi_client.api import auth_api
+def get_logger(name: str):
+    from src.log import get_logger
 
-#     if time.time() - _last_refresh < 600:
-#         return
+    return get_logger(f"Baidu::{name}")
 
-#     logger = get_logger("Baidu:refresh_token").opt(colors=True)
 
-#     with openapi_client.ApiClient() as client:
-#         api = auth_api.AuthApi(client)
-#         try:
-#             resp = api.oauth_token_refresh_token(
-#                 refresh_token=config.refresh_token,
-#                 client_id="APP_ID",
-#                 client_secret="APP_SECRET",
-#             )
-#         except openapi_client.ApiException as e:
-#             logger.error(f"刷新token时出现错误 {Style.RED(e)}")
-#             return
+async def refresh_access_token() -> None:
+    import time, asyncio
 
-#     config.access_token = resp["access_token"]
-#     config.refresh_token = resp["refresh_token"]
-#     _config.save()
+    global _refreshing
+    while _refreshing:
+        await asyncio.sleep(0.1)
+    _refreshing = True
 
-#     _last_refresh = time.time()
+    if time.time() < config.expire - 600:
+        return
 
+    from src.utils import Style, run_sync
+    from .openapi_client import ApiClient, ApiException
+    from .openapi_client.api.auth_api import AuthApi
+
+    logger = get_logger("refresh_token").opt(colors=True)
+    logger.debug("刷新 access_token")
+
+    with ApiClient() as client:
+        call = run_sync(AuthApi(client).oauth_token_refresh_token)
+        try:
+            resp = await call(
+                refresh_token=config.refresh_token,
+                client_id=config.app_id,
+                client_secret=config.app_secret,
+            )
+        except ApiException as e:
+            logger.error(f"刷新token时出现错误 {Style.RED(e)}")
+            return
+
+    config.access_token = resp["access_token"]
+    config.refresh_token = resp["refresh_token"]
+    config.expire = int(time.time() + resp["expires_in"])
+    _config.save()
+    _refreshing = False

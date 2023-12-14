@@ -68,7 +68,7 @@ class Recover(object):
         self.logger.info(f"正在恢复备份: {Style.CYAN(self.config.name)} - {Style.GREEN(record.timestr)}")
         self.logger.debug(f"备份记录: {Style.YELLOW(record)}")
         self.logger.info(f"备份uuid: [{Style.CYAN(record.uuid)}]")
-        self.client = self._backend()
+        self.client = await self._backend.create()
 
         try:
             if self.config.mode == "compress":

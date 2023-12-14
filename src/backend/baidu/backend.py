@@ -1,13 +1,15 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple
 
+from typing_extensions import override
+
 from src.const import StrPath
 from src.models import BaiduConfig
 from src.utils import Style
 from src.utils import mkdir as local_mkdir
 
 from ..backend import Backend
-from .sdk import get_file, list_dir, mkdir, put_file  # , refresh_access_token
+from .sdk import get_file, list_dir, mkdir, put_file, refresh_access_token
 from .sdk.exceptions import BaiduError
 
 if TYPE_CHECKING:
@@ -18,13 +20,21 @@ class BaiduBackend(Backend):
     config: BaiduConfig
     logger: "Logger"
 
+    @override
     def __init__(self) -> None:
         from src.models import config
 
         super(BaiduBackend, self).__init__()
         self.config = config.backend.baidu
-        # refresh_access_token()
 
+    @override
+    @classmethod
+    async def create(cls):
+        self = await super().create()
+        await refresh_access_token()
+        return self
+
+    @override
     async def mkdir(self, path: StrPath) -> None:
         await super(BaiduBackend, self).mkdir(path)
         if not isinstance(path, Path):
@@ -32,11 +42,13 @@ class BaiduBackend(Backend):
 
         await mkdir(path)
 
+    @override
     async def rmdir(self, path: StrPath) -> None:
         await super(BaiduBackend, self).rmdir(path)
         # rmdir
         raise NotImplemented
 
+    @override
     async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         await super(BaiduBackend, self).list_dir(path)
 
@@ -49,6 +61,7 @@ class BaiduBackend(Backend):
             self.logger.debug(err)
             return []
 
+    @override
     async def get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -70,6 +83,7 @@ class BaiduBackend(Backend):
         self.logger.debug(err)
         return False
 
+    @override
     async def put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -94,6 +108,7 @@ class BaiduBackend(Backend):
         self.logger.debug(err)
         return False
 
+    @override
     async def get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -116,6 +131,7 @@ class BaiduBackend(Backend):
 
         return True
 
+    @override
     async def put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:

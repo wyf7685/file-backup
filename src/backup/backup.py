@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, Type
 
 from src.backend import Backend, get_backend
 from src.const import PATH
-from src.const.exceptions import RestartBackup, StopBackup
+from src.const.exceptions import RestartBackup, StopOperation, StopBackup
 from src.log import get_logger
 from src.models import *
 from src.utils import (
@@ -64,21 +64,22 @@ class Backup(object):
                 await self.prepare()
                 await self.make_backup()
                 self.logger.success("备份完成")
-            except StopBackup as e:
+            except StopOperation as e:
                 # 中止备份
-                self.logger.warning(f"备份错误: {e}")
+                self.logger.warning(f"备份错误: {Style.RED(e)}")
                 if e.uuid:
                     await self.client.rmdir(self.remote / e.uuid)
             except RestartBackup as e:
                 # 重启备份
-                self.logger.warning(f"重启备份: {e}")
+                self.logger.warning(f"重启备份: {Style.RED(e)}")
                 continue
             except Exception as e:
-                self.logger.opt(exception=True).exception(f"未知错误: {e}")
+                self.logger.opt(exception=True).exception(f"未知错误: {Style.RED(e)}")
                 self.logger.warning("重启备份...")
                 continue
             finally:
-                del self.client
+                with contextlib.suppress(Exception):
+                    del self.client
                 shutil.rmtree(self.CACHE, True)
                 return
 
@@ -143,7 +144,7 @@ class Backup(object):
         return f"{self.__class__.__name__}(name={self.config.name})"
 
     async def prepare(self) -> None:
-        self.client = self._backend()
+        self.client = await self._backend.create()
         await self.client.mkdir(str(self.remote))
         await self.load_record()
 
@@ -204,8 +205,7 @@ class Backup(object):
         async def _run(p: Path) -> Tuple[str, str]:
             return str(p), await call(self.local / p)
 
-        data = await asyncio.gather(*[_run(p) for p in fp_list])
-        return dict(data)
+        return dict(await asyncio.gather(*[_run(p) for p in fp_list]))
 
     async def get_update_list(self) -> List[BackupUpdate]:
         remote = {}  # type: Dict[str, BackupUpdate]

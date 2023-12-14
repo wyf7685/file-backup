@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple
 
 import aiofiles
+from typing_extensions import override
 
 from src.const import StrPath
 from src.utils import Style, mkdir
@@ -17,22 +18,26 @@ class LocalBackend(Backend):
     local_root: Path
     logger: "Logger"
 
+    @override
     def __init__(self) -> None:
         from src.models import config
 
         super(LocalBackend, self).__init__()
         self.local_root = config.backend.local.storage
 
+    @override
     async def mkdir(self, path: StrPath) -> None:
         await super(LocalBackend, self).mkdir(path)
         if not isinstance(path, Path):
             path = Path(path)
         mkdir(self.local_root / path)
 
+    @override
     async def rmdir(self, path: StrPath) -> None:
         await super(LocalBackend, self).rmdir(path)
         shutil.rmtree(self.local_root / path)
 
+    @override
     async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         await super(LocalBackend, self).list_dir(path)
         return sorted(
@@ -40,6 +45,7 @@ class LocalBackend(Backend):
             for p in (self.local_root / path).iterdir()
         )
 
+    @override
     async def get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -71,6 +77,7 @@ class LocalBackend(Backend):
         self.logger.debug(f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}")
         return False
 
+    @override
     async def put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -101,6 +108,7 @@ class LocalBackend(Backend):
         self.logger.debug(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}")
         return False
 
+    @override
     async def get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -116,6 +124,7 @@ class LocalBackend(Backend):
         self.logger.debug(f"下载目录 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}")
         return False
 
+    @override
     async def put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:

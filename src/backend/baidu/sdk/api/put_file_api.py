@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 from hashlib import md5
 from io import BytesIO
 from pathlib import Path
@@ -8,7 +7,6 @@ from typing import Any, Dict, List, Tuple
 
 import aiofiles
 
-from src.log import get_logger
 from src.utils import Style, run_sync
 
 from ..const import *
@@ -19,7 +17,7 @@ from ..exceptions import (
 )
 from ..openapi_client import ApiClient, ApiException
 from ..openapi_client.api.fileupload_api import FileuploadApi
-from ..sdk_config import config
+from ..sdk_config import config, get_logger
 
 
 class BytesIOwithName(BytesIO):
@@ -120,7 +118,7 @@ async def put_file(local_fp: Path, remote_fp: Path) -> None:
 
     :param local_fp: 本地文件路径
     :param remote_fp: 远程文件路径"""
-    logger = get_logger("Baidu:put_file").opt(colors=True)
+    logger = get_logger("put_file").opt(colors=True)
     file_size, block_data = await process_file(local_fp)
     block_md5 = [md5(i).hexdigest() for i in block_data]
     path = str(PATH_ROOT / remote_fp).replace("\\", "/")

@@ -5,14 +5,13 @@ from typing import Any, Dict, List, Optional
 import aiofiles
 import aiohttp
 
-from src.log import get_logger
 from src.utils import Style, run_sync
 
 from ..const import *
 from ..exceptions import BaiduGetFileError, BaiduListDirectoryError
 from ..openapi_client import ApiClient, ApiException
 from ..openapi_client.api.multimediafile_api import MultimediafileApi
-from ..sdk_config import config
+from ..sdk_config import config, get_logger
 from .list_dir_api import listall
 
 
@@ -37,7 +36,7 @@ def get_fsid(file_list: List[Dict[str, Any]], file_name: str) -> Optional[int]:
 
 
 async def get_file(local_fp: Path, remote_fp: Path):
-    logger = get_logger("Baidu:get_file").opt(colors=True)
+    logger = get_logger("get_file").opt(colors=True)
     path = PATH_ROOT / remote_fp
 
     logger.debug(f"获取目录文件清单: {Style.PATH_DEBUG(remote_fp.parent)}")

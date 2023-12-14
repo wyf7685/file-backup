@@ -4,13 +4,15 @@ from base64 import b64decode, b64encode
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Tuple, TypeAlias
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Self, Tuple, TypeAlias
 
 import aiofiles
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
+from typing_extensions import override
 
 from src.const import *
+from src.const.exceptions import StopOperation
 from src.models import ServerConfig
 from src.utils import Style, mkdir
 
@@ -48,6 +50,7 @@ class ServerBackend(Backend):
     session: ClientSession
     headers: Dict[str, str]
 
+    @override
     def __init__(self) -> None:
         from src.models import config
 
@@ -61,6 +64,15 @@ class ServerBackend(Backend):
         if not self.config.url.endswith("/"):
             self.config.url += "/"
 
+    @override
+    @classmethod
+    async def create(cls) -> Self:
+        self = await super().create()
+        res = await self._request("status")
+        if res.failed:
+            raise StopOperation(f"ServerBackend 状态异常: {res.message}")
+        return self
+
     async def _request(self, api: str, **data) -> _Result:
         url = f"{self.config.url}api/{api}"
         for k in data:
@@ -73,25 +85,28 @@ class ServerBackend(Backend):
         headers = deepcopy(self.headers)
         headers["X-7685-Salt"] = salt
         headers["X-7685-Hash"] = hash
-        
+
         try:
             async with self.session.post(url, json=data, headers=headers) as resp:
                 return _Result.model_validate(await resp.json())
         except Exception as e:
             return _Result(status="error", message=f"{e.__class__.__name__}: {e}")
 
+    @override
     async def mkdir(self, path: StrPath) -> None:
         await super(ServerBackend, self).mkdir(path)
         res = await self._request("mkdir", path=path)
         if res.failed:
             self.logger.error(res.message)
 
+    @override
     async def rmdir(self, path: StrPath) -> None:
         await super(ServerBackend, self).rmdir(path)
         res = await self._request("rmdir", path=path)
         if res.failed:
             self.logger.error(res.message)
 
+    @override
     async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         await super(ServerBackend, self).list_dir(path)
         res = await self._request("list_dir", path=path)
@@ -100,6 +115,7 @@ class ServerBackend(Backend):
             return []
         return sorted(res.data["list"])
 
+    @override
     async def get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -125,6 +141,7 @@ class ServerBackend(Backend):
         self.logger.debug(f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}")
         return False
 
+    @override
     async def put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -159,6 +176,7 @@ class ServerBackend(Backend):
         self.logger.debug(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}")
         return False
 
+    @override
     async def get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
@@ -181,6 +199,7 @@ class ServerBackend(Backend):
 
         return True
 
+    @override
     async def put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:

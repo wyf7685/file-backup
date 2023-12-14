@@ -1,14 +1,13 @@
 from pathlib import Path
 from typing import Any, Dict
 
-from src.log import get_logger
 from src.utils import Style, run_sync
 
 from ..const import *
 from ..exceptions import BaiduMakeDirectoryError
 from ..openapi_client import ApiClient, ApiException
 from ..openapi_client.api.fileupload_api import FileuploadApi
-from ..sdk_config import config
+from ..sdk_config import config, get_logger
 
 
 async def create(
@@ -29,7 +28,7 @@ async def create(
 
 
 async def mkdir(path: Path):
-    logger = get_logger("Baidu:mkdir").opt(colors=True)
+    logger = get_logger("mkdir").opt(colors=True)
     logger.debug(f"创建目录: {Style.PATH_DEBUG(path)}")
     try:
         resp = await create(str(PATH_ROOT / path).replace("\\", "/"))
