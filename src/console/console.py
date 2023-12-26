@@ -10,6 +10,7 @@ from typing import (
     Optional,
     Set,
     TypeAlias,
+    final,
 )
 
 from src.const.exceptions import CommandExit, StopOperation
@@ -26,6 +27,7 @@ T_Command: TypeAlias = Callable[[List[str]], Awaitable[Any]]
 ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 
 
+@final
 class Console(object):
     logger: "Logger" = get_logger("Console").opt(colors=True)
     _callback: Dict[str, List[T_Callback]] = defaultdict(list)
@@ -43,6 +45,9 @@ class Console(object):
 
         while True:
             cmd = await cls._queue.get()
+            if cmd is None:
+                cmd = "stop"
+
             args = cls.parse_cmd(cmd)
             key = args.pop(0) if args else ""
 
@@ -89,6 +94,7 @@ class Console(object):
                 cls.logger.error(e)
             except Exception as e:
                 cls.logger.error(f"命令 {cls.styled_command(key, *args)} 异常退出: {e}")
+
         await asyncio.gather(*[call(func) for func in cls._callback[key]])
 
     @staticmethod

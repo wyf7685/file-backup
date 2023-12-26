@@ -3,15 +3,15 @@ import typing as t
 
 from . import path as _path
 
-VERSION = "0.2.5"
+VERSION = "0.3.0"
 PATH = _path
 
-BackendType = t.Literal["local", "server", "baidu"]
-BackupMode = t.Literal["increment", "compress"]
-BackupUpdateType = t.Literal["file", "dir", "del"]
-StrPath = t.Union[str, _p.Path]
+type BackendType = t.Literal["local", "server", "baidu"]
+type BackupMode = t.Literal["increment", "compress"]
+type BackupUpdateType = t.Literal["file", "dir", "del"]
+type StrPath = t.Union[str, _p.Path]
 
-BackupModeSet: t.Set[str] = set(BackupMode.__args__)  # type: ignore
+BackupModeSet: t.Set[str] = {"increment", "compress"}
 
 
 def __init() -> None:

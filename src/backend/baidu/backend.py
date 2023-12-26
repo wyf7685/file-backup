@@ -1,7 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, List, Tuple, override
 
 from src.const import StrPath
 from src.models import BaiduConfig

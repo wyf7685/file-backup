@@ -1,12 +1,8 @@
 from queue import Queue as _Queue
-from typing import Generic, TypeVar
 
-from typing_extensions import override
+from typing import override
 
-_T = TypeVar("_T")
-
-
-class Queue(_Queue, Generic[_T]):
+class Queue[T: object](_Queue):
     """
     Same as `queue.Queue`, but added generic support
 
@@ -15,17 +11,17 @@ class Queue(_Queue, Generic[_T]):
     """
 
     @override
-    def put(self, item: _T, block: bool = True, timeout: float | None = None) -> None:
+    def put(self, item: T, block: bool = True, timeout: float | None = None) -> None:
         return super().put(item, block, timeout)
 
     @override
-    def get(self, block: bool = True, timeout: float | None = None) -> _T:
+    def get(self, block: bool = True, timeout: float | None = None) -> T:
         return super().get(block, timeout)
 
     @override
-    def put_nowait(self, item: _T) -> None:
+    def put_nowait(self, item: T) -> None:
         return super().put_nowait(item)
 
     @override
-    def get_nowait(self) -> _T:
+    def get_nowait(self) -> T:
         return super().get_nowait()

@@ -3,7 +3,7 @@ from typing import List
 from src.console import Console
 from src.utils import Style
 from src.const.exceptions import CommandExit
-from src.models import List, find_backup
+from src.models import find_backup
 
 from .recover import Recover
 

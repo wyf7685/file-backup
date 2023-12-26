@@ -1,7 +1,7 @@
 import contextlib
+import typing as _t
 from hashlib import md5 as _md5
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,7 @@ class ServerConfig(BaseModel):
     url: str = Field(default="http://127.0.0.1:8008")
     token: str = Field(default="token")
     api_key: str = Field(default="api_key")
+
 
 class BaiduConfig(BaseModel):
     app_id: str = Field(default="app_id")
@@ -51,7 +52,7 @@ class Config(BaseModel):
     log_level: str = Field(default="INFO")
     backend: BackendConfig = Field(default_factory=BackendConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
-    backup_list: List[BackupConfig] = Field(default_factory=list)
+    backup_list: _t.List[BackupConfig] = Field(default_factory=list)
 
     def save(self, path: Path = PATH.CONFIG) -> None:
         path.write_text(self.model_dump_json(indent=4), encoding="utf-8")
@@ -80,7 +81,7 @@ class BackupUpdate(BaseModel):
     """
     path: Path
     """相对路径"""
-    md5: Optional[str]
+    md5: _t.Optional[str]
     """
     * 文件: md5值
     * 文件夹/移除: None
@@ -90,7 +91,7 @@ class BackupUpdate(BaseModel):
         return self.md5 == md5
 
 
-def find_backup(name: str) -> Optional[BackupConfig]:
+def find_backup(name: str) -> _t.Optional[BackupConfig]:
     if data := [i for i in config.backup_list if i.name == name]:
         return data[0]
 

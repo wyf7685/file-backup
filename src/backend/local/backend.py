@@ -1,9 +1,8 @@
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Tuple, override
 
 import aiofiles
-from typing_extensions import override
 
 from src.const import StrPath
 from src.utils import Style, mkdir

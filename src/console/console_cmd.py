@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import List
 
@@ -74,7 +73,7 @@ async def cmd_query(args: List[str]) -> None:
         raise CommandExit(f"[{Style.CYAN(name)}] 的备份记录下载失败")
 
     raw = json.loads(cache_fp.read_text())
-    os.remove(cache_fp)
+    cache_fp.unlink(True)
 
     logger.info(f"[{Style.CYAN(name)}] 的备份记录")
     logger.info("================================")

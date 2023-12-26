@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, List, Tuple, Self
+from typing import TYPE_CHECKING, Any, List, Self, Tuple
 
 import aiofiles as _
 
@@ -19,7 +19,7 @@ class Backend(object):
 
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__).opt(colors=True)
-    
+
     @classmethod
     async def create(cls) -> Self:
         return cls()

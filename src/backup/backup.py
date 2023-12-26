@@ -1,14 +1,13 @@
 import asyncio
 import json
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Tuple, Type
+from typing import TYPE_CHECKING, Dict, List, Tuple, Type, final
 
 from src.backend import Backend, get_backend
 from src.const import PATH
-from src.const.exceptions import RestartBackup, StopOperation, StopBackup
+from src.const.exceptions import RestartBackup, StopBackup, StopOperation
 from src.log import get_logger
 from src.models import *
 from src.utils import (
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
     from src.log import Logger
 
 
+@final
 class Backup(object):
     config: BackupConfig
     logger: "Logger"
@@ -93,7 +93,7 @@ class Backup(object):
             cache_fp.write_text("[]")
 
         raw = cache_fp.read_text()
-        os.remove(cache_fp)
+        cache_fp.unlink()
         self.record = [BackupRecord.model_validate(i) for i in json.loads(raw)]
 
     async def add_record(self, uuid: str) -> None:
@@ -126,7 +126,7 @@ class Backup(object):
         # 上传备份清单
         if not await self.client.put_file(cache_fp, remote_fp):
             raise StopBackup("上传备份记录失败")
-        os.remove(cache_fp)
+        cache_fp.unlink()
 
     def check_local(self) -> None:
         # 本地待备份路径错误
