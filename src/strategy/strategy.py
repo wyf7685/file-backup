@@ -25,16 +25,16 @@ class Strategy(metaclass=ABCMeta):
     client: Backend
     record: List[BackupRecord]
 
-    @classmethod
-    async def _create(cls, config: BackupConfig, silent: bool = False):
-        self = cls()
+    def __init__(self, config: BackupConfig):
         self.config = config
         self._backend = get_backend()
         self._cache = PATH.CACHE / get_uuid().split("-")[0]
         name = self.config.name
         self.logger = get_logger(name).opt(colors=True)
-        if not silent:
-            self.logger.success(f"[{Style.CYAN(name)}] 初始化成功")
+
+    @classmethod
+    async def init(cls, config: BackupConfig):
+        self = cls(config)
         await self._on_init()
         return self
 

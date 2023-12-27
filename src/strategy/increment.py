@@ -23,7 +23,7 @@ from .strategy import Strategy
 
 class IncrementStrategy(Strategy):
     @override
-    async def _on_init(self):
+    async def _on_init(self) -> None:
         pass
 
     def get_local_list(self) -> List[Tuple[BackupUpdateType, Path]]:

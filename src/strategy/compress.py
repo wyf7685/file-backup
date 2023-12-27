@@ -10,7 +10,7 @@ from .strategy import Strategy
 
 class CompressStrategy(Strategy):
     @override
-    def _on_init(self):
+    async def _on_init(self) -> None:
         pass
 
     @override

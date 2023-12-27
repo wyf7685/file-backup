@@ -2,10 +2,10 @@ import typing as _t
 
 from src.const import BackupMode
 
-from .compress import CompressStrategy as CompressStrategy
-from .increment import IncrementStrategy as IncrementStrategy
+from .compress import CompressStrategy
+from .increment import IncrementStrategy
 from .protocol import StrategyProtocol as StrategyProtocol
-from .strategy import Strategy as Strategy
+from .strategy import Strategy
 
 STRATEGY: _t.Dict[BackupMode, _t.Type[Strategy]] = {
     "compress": CompressStrategy,
@@ -13,5 +13,5 @@ STRATEGY: _t.Dict[BackupMode, _t.Type[Strategy]] = {
 }
 
 
-def get_strategy(mode: BackupMode):
+def get_strategy(mode: BackupMode) -> _t.Type[Strategy]:
     return STRATEGY[mode]

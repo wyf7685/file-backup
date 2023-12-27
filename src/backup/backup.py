@@ -4,12 +4,14 @@ from src.strategy import StrategyProtocol, get_strategy
 from src.utils import Style
 
 
-class Backup:
+class Backup(object):
     @classmethod
     async def create(cls, config: BackupConfig, silent: bool = False):
         strategy = get_strategy(config.mode)
-        cls = type("MixedBackup", (strategy, cls), {})
-        self = await cls._create(config, silent)
+        MixedBackup = type("MixedBackup", (cls, strategy), {})
+        self = await MixedBackup.init(config)
+        if not silent:
+            self.logger.success(f"{Style.GREEN("Backup")} [{Style.CYAN(config.name)}] 初始化成功")
         return self
 
     async def apply(self):
@@ -22,11 +24,10 @@ class Backup:
             except StopOperation as e:
                 # 中止备份
                 self.logger.warning(f"备份错误: {Style.RED(e)}")
+                break
             except RestartBackup as e:
                 # 重启备份
                 self.logger.warning(f"重启备份: {Style.RED(e)}")
-                continue
             except Exception as e:
                 self.logger.opt(exception=True).exception(f"未知错误: {Style.RED(e)}")
                 self.logger.warning("重启备份...")
-                continue

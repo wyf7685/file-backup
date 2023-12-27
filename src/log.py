@@ -12,7 +12,7 @@ logger: "Logger" = loguru.logger.opt()
 DEFAULT_LOG_LEVEL: str = "DEBUG"
 
 
-class LoguruHandler(logging.Handler):  # pragma: no cover
+class LoguruHandler(logging.Handler):
     """logging 与 loguru 之间的桥梁，将 logging 的日志转发到 loguru。"""
 
     def emit(self, record: logging.LogRecord):
@@ -36,7 +36,7 @@ class LogMixin(object):
     __logger__: "Logger"
 
     def __init__(self) -> None:
-        raise NotImplemented
+        ...
 
     def __chech_logger(self) -> None:
         assert hasattr(

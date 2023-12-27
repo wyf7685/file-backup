@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING, Optional, Protocol, Self, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from src.models import BackupConfig, BackupRecord
+from src.models import BackupRecord
 
 if TYPE_CHECKING:
     from src.log import Logger
