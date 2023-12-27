@@ -19,12 +19,11 @@ async def cmd_recover(args: List[str]) -> None:
 
     name, uuid = args
 
-    backup = find_backup(name)
-    if backup is None:
+    config = find_backup(name)
+    if config is None:
         raise CommandExit(f"未找到名为 [{Style.CYAN(name)}] 的备份项")
 
-    recover = Recover(backup)
-    await recover.load_record_list()
+    recover = await Recover.create(config)
     record = recover.get_record(uuid)
     if record is None:
         raise CommandExit(f"未找到 uuid 为 [{Style.CYAN(uuid)}] 的备份")

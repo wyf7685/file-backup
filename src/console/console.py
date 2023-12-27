@@ -5,6 +5,7 @@ from typing import (
     Any,
     Awaitable,
     Callable,
+    ClassVar,
     Dict,
     List,
     Optional,
@@ -29,10 +30,10 @@ ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 
 @final
 class Console(object):
-    logger: "Logger" = get_logger("Console").opt(colors=True)
-    _callback: Dict[str, List[T_Callback]] = defaultdict(list)
-    _cmd_help: Dict[str, List[str]] = defaultdict(list)
-    _queue: InputQueue = InputQueue()
+    logger: ClassVar["Logger"] = get_logger("Console").opt(colors=True)
+    _callback: ClassVar[Dict[str, List[T_Callback]]] = defaultdict(list)
+    _cmd_help: ClassVar[Dict[str, List[str]]] = defaultdict(list)
+    _queue: ClassVar[InputQueue] = InputQueue()
 
     @classmethod
     async def start(cls) -> None:
@@ -72,7 +73,7 @@ class Console(object):
         alias: List[str] = [],
     ):
         def decorator(func: T_Callback):
-            for k in [key] + alias:
+            for k in [key, *alias]:
                 cls._callback[k].append(func)
 
             if help is not None:

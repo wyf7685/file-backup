@@ -2,12 +2,12 @@ from queue import Queue as _Queue
 
 from typing import override
 
-class Queue[T: object](_Queue):
+class Queue[T](_Queue):
     """
     Same as `queue.Queue`, but added generic support
 
     e.g.:
-    >>> que: Queue[str] = Queue()
+    >>> que = Queue[str]()
     """
 
     @override

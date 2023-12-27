@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Dict
 
 from src.log import get_logger
 from src.models import BackupConfig, Style, config
@@ -11,12 +11,13 @@ from .backup import Backup
 if TYPE_CHECKING:
     from src.log import Logger
 
+
 class BackupHost(object):
-    logger: "Logger" = get_logger("BackupHost").opt(colors=True)
-    _last_run: Dict[str, float] = {}
-    _running: bool = False
-    _task: asyncio.Task[None]
-    _backup_task: Dict[str, asyncio.Task[None]] = {}
+    logger: ClassVar["Logger"] = get_logger("BackupHost").opt(colors=True)
+    _last_run: ClassVar[Dict[str, float]] = {}
+    _running: ClassVar[bool] = False
+    _task: ClassVar[asyncio.Task[None]]
+    _backup_task: ClassVar[Dict[str, asyncio.Task[None]]] = {}
 
     @classmethod
     async def _run(cls) -> None:
@@ -59,8 +60,9 @@ class BackupHost(object):
         cls.logger.info(f"{Style.GREEN('BackupHost')} 已终止")
 
     @classmethod
-    async def run_backup(cls, backup: BackupConfig) -> None:
-        cls.logger.info(f"创建备份任务: [{Style.CYAN(backup.name)}]")
-        cls._last_run[backup.name] = datetime.now().timestamp()
-        task = asyncio.create_task(Backup(backup).apply())
-        cls._backup_task[backup.name] = task
+    async def run_backup(cls, config: BackupConfig) -> None:
+        cls.logger.info(f"创建备份任务: [{Style.CYAN(config.name)}]")
+        cls._last_run[config.name] = datetime.now().timestamp()
+        backup = await Backup.create(config)
+        task = asyncio.create_task(backup.apply())
+        cls._backup_task[config.name] = task

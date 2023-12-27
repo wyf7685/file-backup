@@ -164,6 +164,8 @@ cython_debug/
 backup/
 data/
 logs/
+test/
 *.7z
 *.exe
 test.py
+___.py
