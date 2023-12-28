@@ -50,11 +50,10 @@ def run_sync[**P, R](call: Callable[P, R]) -> Callable[P, Coroutine[None, None, 
     import asyncio
 
     @wraps(call)
-    async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         loop = asyncio.get_running_loop()
         pfunc = partial(call, *args, **kwargs)
         context = copy_context()
         return await loop.run_in_executor(None, partial(context.run, pfunc))
 
-    return _wrapper
-
+    return wrapper

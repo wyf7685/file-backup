@@ -4,7 +4,7 @@ import loguru
 from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
-    from loguru import Logger, Record, ExcInfo
+    from loguru import Logger, Record
 
 
 logger: "Logger" = loguru.logger.opt()
@@ -29,85 +29,6 @@ class LoguruHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(
             level, record.getMessage()
         )
-
-
-class LogMixin(object):
-    """For fun (maybe?)"""
-    __logger__: "Logger"
-
-    def __init__(self) -> None:
-        ...
-
-    def __chech_logger(self) -> None:
-        assert hasattr(
-            self, "__logger__"
-        ), "Call `init_log` before using logger of LogMixin"
-
-    def init_log(self, name: Optional[str] = None):
-        self.__logger__ = get_logger(name)
-        return self
-
-    def opt(
-        self,
-        *,
-        exception: Optional[Union[bool, "ExcInfo", BaseException]] = None,
-        record: bool = False,
-        lazy: bool = False,
-        colors: bool = False,
-        raw: bool = False,
-        capture: bool = True,
-        depth: int = 0,
-        inplace: bool = False,
-    ) -> "Logger":
-        self.__chech_logger()
-        logger = self.__logger__.opt(
-            exception=exception,
-            record=record,
-            lazy=lazy,
-            colors=colors,
-            raw=raw,
-            capture=capture,
-            depth=depth,
-        )
-        if inplace:
-            self.__logger__ = logger
-        return logger
-
-    def bind(self, **kwargs) -> "Logger":
-        self.__chech_logger()
-        return self.__logger__.bind(**kwargs)
-
-    def trace(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.trace(message, *args, **kwargs)
-
-    def debug(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.debug(message, *args, **kwargs)
-
-    def info(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.info(message, *args, **kwargs)
-
-    def success(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.success(message, *args, **kwargs)
-
-    def warning(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.warning(message, *args, **kwargs)
-
-    def error(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.error(message, *args, **kwargs)
-
-    def critical(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.critical(message, *args, **kwargs)
-
-    def exception(self, message, *args, **kwargs) -> None:
-        self.__chech_logger()
-        self.__logger__.exception(message, *args, **kwargs)
 
 
 class Filter:
@@ -147,14 +68,14 @@ class Format:
         "<g>{time:MM-DD HH:mm:ss}</g> "
         "[<lvl>{level}</lvl>] "
         "<c><u>{name}</u></c> | "
-        "{message}\n"
+        "{message}\n{exception}"
     )
     fmt_debug: str = (
         "<g>{time:MM-DD HH:mm:ss}</g> "
         "[<lvl>{level}</lvl>] "
         "<c><u>{name}</u></c> | "
         "<c>{file}</c>:<c>{line}</c> | "
-        "{message}\n"
+        "{message}\n{exception}"
     )
 
     def __call__(self, record: "Record") -> str:

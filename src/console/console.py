@@ -84,6 +84,7 @@ class Console(object):
         return decorator
 
     @classmethod
+    @logger.catch
     async def _run_command(cls, key: str, args: List[str]) -> None:
         async def call(func: T_Callback):
             try:
@@ -94,7 +95,7 @@ class Console(object):
             except StopOperation as e:
                 cls.logger.error(e)
             except Exception as e:
-                cls.logger.error(f"命令 {cls.styled_command(key, *args)} 异常退出: {e}")
+                cls.logger.exception(f"命令 {cls.styled_command(key, *args)} 异常退出: {e}")
 
         await asyncio.gather(*[call(func) for func in cls._callback[key]])
 
@@ -103,19 +104,19 @@ class Console(object):
         cmd += " "
         args = []
         p = i = 0
-        quote = False
+        quote = None
 
         while i < len(cmd):
-            if cmd[i] == '"':
-                if quote:
+            if cmd[i] in {'"', "'"}:
+                if quote == cmd[i]:
                     args.append(cmd[p:i])
-                    quote = False
+                    quote = None
                     p = i + 2
                     i += 1
-                else:
-                    quote = True
+                elif quote is None:
+                    quote = cmd[i]
                     p = i + 1
-            elif cmd[i] == " " and not quote:
+            elif cmd[i] == " " and quote is None:
                 args.append(cmd[p:i])
                 p = i + 1
             i += 1
@@ -126,7 +127,7 @@ class Console(object):
     def check_arg_length(args: List[str], length: int, *lengths: int) -> List[str]:
         arr = [length, *lengths]
         if len(args) not in arr:
-            raise CommandExit(f"应输入 {', '.join(str(i) for i in arr)} 个参数")
+            raise CommandExit(f"应输入 {'/'.join(str(i) for i in arr)} 个参数")
         return args
 
     @staticmethod
@@ -136,5 +137,8 @@ class Console(object):
     @staticmethod
     def styled_command(cmd: str, *args: str) -> str:
         res = [Style.GREEN(cmd)]
-        res.extend(Console.styled_arg(arg) for arg in args)
+        for arg in args:
+            if ' ' in arg:
+                arg = f'"{arg}"'
+            res.append(Console.styled_arg(arg))
         return " ".join(res)

@@ -16,18 +16,19 @@ class Backup(object):
 
     async def apply(self):
         assert isinstance(self, StrategyProtocol)
-        while True:
-            try:
-                await self.make_backup()
-                self.logger.success("备份完成")
-                break
-            except StopOperation as e:
-                # 中止备份
-                self.logger.warning(f"备份错误: {Style.RED(e)}")
-                break
-            except RestartBackup as e:
-                # 重启备份
-                self.logger.warning(f"重启备份: {Style.RED(e)}")
-            except Exception as e:
-                self.logger.opt(exception=True).exception(f"未知错误: {Style.RED(e)}")
-                self.logger.warning("重启备份...")
+        with self.logger.catch():
+            while True:
+                try:
+                    await self.make_backup()
+                    self.logger.success("备份完成")
+                    break
+                except StopOperation as e:
+                    # 中止备份
+                    self.logger.warning(f"备份错误: {Style.RED(e)}")
+                    break
+                except RestartBackup as e:
+                    # 重启备份
+                    self.logger.warning(f"重启备份: {Style.RED(e)}")
+                except Exception as e:
+                    self.logger.exception(f"未知错误: {Style.RED(e)}")
+                    self.logger.warning("重启备份...")

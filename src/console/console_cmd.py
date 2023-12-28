@@ -20,8 +20,10 @@ async def backend() -> Backend:
 async def cmd_help(*_) -> None:
     logger = Console.logger
 
-    logger.info("帮助列表")
-    logger.info("================================")
+    length = max(len(k) + len(v) for k, v in Console._cmd_help.items()) + 16
+
+    logger.info((Style.YELLOW | Style.BOLD)("帮助列表".center(length - 4)))
+    logger.info("=" * length)
     for cmd, helps in sorted(Console._cmd_help.items()):
         for help in helps:
             logger.info(f"{Style.GREEN(cmd)} - {help}")
@@ -29,8 +31,11 @@ async def cmd_help(*_) -> None:
 
 @Console.register("reload", "重载配置文件", alias=["r"])
 async def cmd_reload(*_) -> None:
-    config.reload()
-    Console.logger.success("配置文件重载成功!")
+    try:
+        config.reload()
+        Console.logger.success("配置文件重载成功!")
+    except Exception as err:
+        Console.logger.error(f"配置文件重载失败: {err}")
 
 
 def format_backup_info(backup: BackupConfig) -> List[str]:
@@ -161,7 +166,7 @@ async def cmd_log_level(args: List[str]) -> None:
         command = Console.styled_command("log-level", "<level>")
         logger.info(f"{command} - 临时修改日志等级为 {Console.styled_arg('<level>')}")
         return
-    
+
     level = Console.check_arg_length(args, 1).pop(0).upper()
     try:
         set_log_level(level)
@@ -172,5 +177,6 @@ async def cmd_log_level(args: List[str]) -> None:
     logger.info(f"已将当前日志等级修改为: {Style.YELLOW(level)}")
 
 
-
-
+@Console.register("test", "测试命令")
+async def cmd_test(args: List[str]) -> None:
+    Console.logger.info(f"测试: {Console.styled_command("test", *args)}")

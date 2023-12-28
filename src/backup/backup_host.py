@@ -20,6 +20,7 @@ class BackupHost(object):
     _backup_task: ClassVar[Dict[str, asyncio.Task[None]]] = {}
 
     @classmethod
+    @logger.catch
     async def _run(cls) -> None:
         while cls._running:
             # 判断备份任务是否已完成
@@ -60,6 +61,7 @@ class BackupHost(object):
         cls.logger.info(f"{Style.GREEN('BackupHost')} 已终止")
 
     @classmethod
+    @logger.catch
     async def run_backup(cls, config: BackupConfig) -> None:
         cls.logger.info(f"创建备份任务: [{Style.CYAN(config.name)}]")
         cls._last_run[config.name] = datetime.now().timestamp()

@@ -13,8 +13,10 @@ class _StyleInt(int):
             k <<= 1
         return keys
 
-    def __call__(self, value: _t.Any) -> str:
-        text = str(value).replace("<", "\\<")
+    def __call__(self, value: _t.Any, fix: bool = True) -> str:
+        text = str(value)
+        if fix:
+            text = text.replace("<", "\\<")
         for key in self.__keys():
             text = f"<{key}>{text}</{key}>"
         return text
