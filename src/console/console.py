@@ -10,7 +10,6 @@ from typing import (
     List,
     Optional,
     Set,
-    TypeAlias,
     final,
 )
 
@@ -23,20 +22,23 @@ from .input_queue import InputQueue
 if TYPE_CHECKING:
     from src.log import Logger
 
-T_Callback: TypeAlias = Callable[[List[str]], Awaitable[Any]]
-T_Command: TypeAlias = Callable[[List[str]], Awaitable[Any]]
+type T_Callback = Callable[[List[str]], Awaitable[Any]]
 ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 
 
 @final
 class Console(object):
-    logger: ClassVar["Logger"] = get_logger("Console").opt(colors=True)
-    _callback: ClassVar[Dict[str, List[T_Callback]]] = defaultdict(list)
-    _cmd_help: ClassVar[Dict[str, List[str]]] = defaultdict(list)
-    _queue: ClassVar[InputQueue] = InputQueue()
+    logger: ClassVar["Logger"]
+    _callback: ClassVar[Dict[str, List[T_Callback]]]
+    _cmd_help: ClassVar[Dict[str, List[str]]]
+    _queue: ClassVar[InputQueue]
 
     @classmethod
     async def start(cls) -> None:
+        cls.logger = get_logger("Console").opt(colors=True)
+        cls._callback = defaultdict(list)
+        cls._cmd_help = defaultdict(list)
+        cls._queue = InputQueue()
         await cls._run()
 
     @classmethod
@@ -84,8 +86,8 @@ class Console(object):
         return decorator
 
     @classmethod
-    @logger.catch
     async def _run_command(cls, key: str, args: List[str]) -> None:
+        @cls.logger.catch
         async def call(func: T_Callback):
             try:
                 await func(args)
@@ -138,7 +140,7 @@ class Console(object):
     def styled_command(cmd: str, *args: str) -> str:
         res = [Style.GREEN(cmd)]
         for arg in args:
-            if ' ' in arg:
+            if " " in arg:
                 arg = f'"{arg}"'
             res.append(Console.styled_arg(arg))
         return " ".join(res)

@@ -46,7 +46,7 @@ def format_backup_info(backup: BackupConfig) -> List[str]:
     ]
 
 
-@Console.register("list", "列出所有备份项", alias=["l"])
+@Console.register("list", "列出所有备份项", alias=["ls"])
 async def cmd_list(*_) -> None:
     logger = Console.logger
     logger.info("备份项列表")

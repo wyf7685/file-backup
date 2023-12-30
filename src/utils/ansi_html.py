@@ -1,5 +1,7 @@
+import functools
+from functools import partial
 import re
-from typing import Any, Dict, TextIO, Tuple
+from typing import Any, Dict, Sequence, TextIO, Tuple, override, Callable
 from colorama.ansi import AnsiFore, AnsiBack, AnsiStyle
 from colorama.ansitowin32 import AnsiToWin32
 
@@ -11,98 +13,102 @@ ANSI_OSC_RE = re.compile("\001?\033\\]([^\a]*)(\a)\002?")
 
 
 class AnsiToHtml(AnsiToWin32):
-    win32_calls: Dict[str, Tuple[Any, ...]]
+    win32_calls: Dict[str, Callable[[], str]]
     span_depth: int = 0
 
+    @override
     def __init__(self, wrapped: TextIO) -> None:
         super().__init__(wrapped, True, False, False)
         self.win32_calls = {
-            AnsiStyle.RESET_ALL: (self.reset_all,),
-            AnsiStyle.BRIGHT: (self.disable,),
-            AnsiStyle.DIM: (self.disable,),
-            AnsiStyle.NORMAL: (self.disable,),
-            AnsiFore.BLACK: (self.fore, "black"),
-            AnsiFore.RED: (self.fore, "red"),
-            AnsiFore.GREEN: (self.fore, "green"),
-            AnsiFore.YELLOW: (self.fore, "#F5C500"),
-            AnsiFore.BLUE: (self.fore, "blue"),
-            AnsiFore.MAGENTA: (self.fore, "magenta"),
-            AnsiFore.CYAN: (self.fore, "#5EB5FA"),
-            AnsiFore.WHITE: (self.fore, "gray"),
-            AnsiFore.RESET: (self.fore,),
-            AnsiFore.LIGHTBLACK_EX: (self.fore, "#888483"),
-            AnsiFore.LIGHTRED_EX: (self.fore, "#F94C48"),
-            AnsiFore.LIGHTGREEN_EX: (self.fore, "#23D487"),
-            AnsiFore.LIGHTYELLOW_EX: (self.fore, "#FAF740"),
-            AnsiFore.LIGHTBLUE_EX: (self.fore, "#3C90ED"),
-            AnsiFore.LIGHTMAGENTA_EX: (self.fore, "#DB6FD1"),
-            AnsiFore.LIGHTCYAN_EX: (self.fore, "#2AB9D6"),
-            AnsiFore.LIGHTWHITE_EX: (self.fore, "#ECE9E1"),
-            AnsiBack.BLACK: (self.disable,),
-            AnsiBack.RED: (self.disable,),
-            AnsiBack.GREEN: (self.disable,),
-            AnsiBack.YELLOW: (self.disable,),
-            AnsiBack.BLUE: (self.disable,),
-            AnsiBack.MAGENTA: (self.disable,),
-            AnsiBack.CYAN: (self.disable,),
-            AnsiBack.WHITE: (self.disable,),
-            AnsiBack.RESET: (self.disable,),
-            AnsiBack.LIGHTBLACK_EX: (self.disable,),
-            AnsiBack.LIGHTRED_EX: (self.disable,),
-            AnsiBack.LIGHTGREEN_EX: (self.disable,),
-            AnsiBack.LIGHTYELLOW_EX: (self.disable,),
-            AnsiBack.LIGHTBLUE_EX: (self.disable,),
-            AnsiBack.LIGHTMAGENTA_EX: (self.disable,),
-            AnsiBack.LIGHTCYAN_EX: (self.disable,),
-            AnsiBack.LIGHTWHITE_EX: (self.disable,),
+            AnsiStyle.RESET_ALL: self.reset_all,
+            AnsiStyle.BRIGHT: self.disable,
+            AnsiStyle.DIM: self.disable,
+            AnsiStyle.NORMAL: self.disable,
+            AnsiFore.BLACK: partial(self.fore, "black"),
+            AnsiFore.RED: partial(self.fore, "red"),
+            AnsiFore.GREEN: partial(self.fore, "green"),
+            AnsiFore.YELLOW: partial(self.fore, "#F5C500"),
+            AnsiFore.BLUE: partial(self.fore, "blue"),
+            AnsiFore.MAGENTA: partial(self.fore, "magenta"),
+            AnsiFore.CYAN: partial(self.fore, "#5EB5FA"),
+            AnsiFore.WHITE: partial(self.fore, "gray"),
+            AnsiFore.RESET: self.reset_all,
+            AnsiFore.LIGHTBLACK_EX: partial(self.fore, "#888483"),
+            AnsiFore.LIGHTRED_EX: partial(self.fore, "#F94C48"),
+            AnsiFore.LIGHTGREEN_EX: partial(self.fore, "#23D487"),
+            AnsiFore.LIGHTYELLOW_EX: partial(self.fore, "#FAF740"),
+            AnsiFore.LIGHTBLUE_EX: partial(self.fore, "#3C90ED"),
+            AnsiFore.LIGHTMAGENTA_EX: partial(self.fore, "#DB6FD1"),
+            AnsiFore.LIGHTCYAN_EX: partial(self.fore, "#2AB9D6"),
+            AnsiFore.LIGHTWHITE_EX: partial(self.fore, "#ECE9E1"),
+            AnsiBack.BLACK: self.disable,
+            AnsiBack.RED: self.disable,
+            AnsiBack.GREEN: self.disable,
+            AnsiBack.YELLOW: self.disable,
+            AnsiBack.BLUE: self.disable,
+            AnsiBack.MAGENTA: self.disable,
+            AnsiBack.CYAN: self.disable,
+            AnsiBack.WHITE: self.disable,
+            AnsiBack.RESET: self.reset_all,
+            AnsiBack.LIGHTBLACK_EX: self.disable,
+            AnsiBack.LIGHTRED_EX: self.disable,
+            AnsiBack.LIGHTGREEN_EX: self.disable,
+            AnsiBack.LIGHTYELLOW_EX: self.disable,
+            AnsiBack.LIGHTBLUE_EX: self.disable,
+            AnsiBack.LIGHTMAGENTA_EX: self.disable,
+            AnsiBack.LIGHTCYAN_EX: self.disable,
+            AnsiBack.LIGHTWHITE_EX: self.disable,
         }
 
-    def fore(self, fore, *args, **kwargs) -> str:
+    def fore(self, fore) -> str:
         self.span_depth += 1
         return f'<span style="color:{fore}">'
 
-    def reset_all(self, *args, **kwargs) -> str:
+    def reset_all(self) -> str:
         tag = "</span>" * self.span_depth
         self.span_depth = 0
         return tag
 
-    def disable(self, *args, **kwargs) -> str:
+    def disable(self) -> str:
         self.span_depth += 1
         return "<span>"
 
-    def call_win32(self, command, params) -> Any:
+    @functools.cache
+    @override
+    def call_win32(self, command: str, params: Sequence[int]) -> str:
         if command == "m":
             for param in params:
                 if param in self.win32_calls:
-                    func_args = self.win32_calls[param]
-                    func = func_args[0]
-                    args = func_args[1:]
-                    kwargs = dict(on_stderr=self.on_stderr)
-                    return func(*args, **kwargs)
+                    return self.win32_calls[param]()
+        return ""
 
-    def convert_ansi(self, paramstring, command) -> Any:
+    @override
+    def convert_ansi(self, paramstring: str, command: str) -> str:
         params = self.extract_params(command, paramstring)
         return self.call_win32(command, params)
 
-    def convert_osc(self, text) -> str:
+    @override
+    def convert_osc(self, text: str) -> str:
         return text
 
-    def write_and_convert(self, text) -> int:
+    @override
+    def write_and_convert(self, text: str) -> int:
         cursor = 0
         count = 0
         text = self.convert_osc(text)
-        for match in self.ANSI_CSI_RE.finditer(text):
-            start, end = match.span()
+        for m in self.ANSI_CSI_RE.finditer(text):
+            start, end = m.span()
             self.write_plain_text(text, cursor, start)
             count += start - cursor
-            span = self.convert_ansi(*match.groups()) or ""
+            span = self.convert_ansi(*m.groups())
             self.write_plain_text(span, 0, len(span))
             cursor = end
         self.write_plain_text(text, cursor, len(text))
         count += len(text) - cursor
         return count
 
-    def write(self, text) -> int:
+    @override
+    def write(self, text: str) -> int:
         return self.write_and_convert(text)
 
 

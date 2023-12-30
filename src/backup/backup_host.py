@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class BackupHost(object):
     logger: ClassVar["Logger"] = get_logger("BackupHost").opt(colors=True)
-    _last_run: ClassVar[Dict[str, float]] = {}
+    _last_run: ClassVar[Dict[str, datetime]] = {}
     _running: ClassVar[bool] = False
     _task: ClassVar[asyncio.Task[None]]
     _backup_task: ClassVar[Dict[str, asyncio.Task[None]]] = {}
@@ -32,9 +32,12 @@ class BackupHost(object):
             for backup in config.backup_list:
                 if backup.name in cls._backup_task:
                     continue
-                now = datetime.now().timestamp()
+                now = datetime.now()
                 last_run = cls._last_run.get(backup.name)
-                if last_run is None or last_run - now > backup.interval:
+                if (
+                    last_run is None
+                    or (last_run - now).microseconds / 1000 > backup.interval
+                ):
                     await cls.run_backup(backup)
             await asyncio.sleep(1)
 
@@ -64,7 +67,7 @@ class BackupHost(object):
     @logger.catch
     async def run_backup(cls, config: BackupConfig) -> None:
         cls.logger.info(f"创建备份任务: [{Style.CYAN(config.name)}]")
-        cls._last_run[config.name] = datetime.now().timestamp()
+        cls._last_run[config.name] = datetime.now()
         backup = await Backup.create(config)
         task = asyncio.create_task(backup.apply())
         cls._backup_task[config.name] = task

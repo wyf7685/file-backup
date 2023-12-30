@@ -1,7 +1,9 @@
 import typing as _t
+import functools
 
 
 class _StyleInt(int):
+    @functools.cache
     def __keys(self) -> _t.List[str]:
         keys = []  # type: _t.List[str]
         k = 1
@@ -13,6 +15,7 @@ class _StyleInt(int):
             k <<= 1
         return keys
 
+    @functools.cache
     def __call__(self, value: _t.Any, fix: bool = True) -> str:
         text = str(value)
         if fix:

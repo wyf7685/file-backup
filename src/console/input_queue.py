@@ -7,14 +7,9 @@ from src.utils import Queue
 
 
 class InputQueue(object):
-    _queue: Queue[str] = Queue(0)
+    _queue: Queue[str]
+    _running: bool
     _thread: Thread
-    _running: bool = False
-    
-    def start(self):
-        self._running = True
-        self._thread = Thread(target=self._run, daemon=True)
-        self._thread.start()
 
     def _run(self) -> None:
         while self._running:
@@ -24,8 +19,14 @@ class InputQueue(object):
                 self._running = False
             time.sleep(0.05)
 
+    def start(self) -> None:
+        self._queue = Queue(0)
+        self._running = True
+        self._thread = Thread(target=self._run, daemon=True)
+        self._thread.start()
+
     async def get(self) -> Optional[str]:
         while self._running:
             if not self._queue.empty():
                 return self._queue.get()
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.05)
