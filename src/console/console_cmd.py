@@ -180,3 +180,14 @@ async def cmd_log_level(args: List[str]) -> None:
 @Console.register("test", "测试命令")
 async def cmd_test(args: List[str]) -> None:
     Console.logger.info(f"测试: {Console.styled_command("test", *args)}")
+
+ctx = {}
+@Console.register("exec", "执行Python语句")
+async def cmd_exec(args: List[str]) -> None:
+    cmd = []
+    for arg in args:
+        if " " in arg:
+            arg = f'"{arg}"'
+        cmd.append(arg)
+    source = ' '.join(cmd)
+    exec(source, ctx)

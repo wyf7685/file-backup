@@ -2,10 +2,8 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple, override
 
-import aiofiles
-
 from src.const import StrPath
-from src.utils import Style, mkdir
+from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
 
@@ -14,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class LocalBackend(Backend):
-    local_root: Path
+    root: Path
     logger: "Logger"
 
     @override
@@ -22,26 +20,25 @@ class LocalBackend(Backend):
         from src.models import config
 
         super(LocalBackend, self).__init__()
-        self.local_root = config.backend.local.storage
+        self.root = config.backend.local.storage
 
     @override
     async def mkdir(self, path: StrPath) -> None:
         await super(LocalBackend, self).mkdir(path)
         if not isinstance(path, Path):
             path = Path(path)
-        mkdir(self.local_root / path)
+        mkdir(self.root / path)
 
     @override
     async def rmdir(self, path: StrPath) -> None:
         await super(LocalBackend, self).rmdir(path)
-        shutil.rmtree(self.local_root / path)
+        shutil.rmtree(self.root / path)
 
     @override
     async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         await super(LocalBackend, self).list_dir(path)
         return sorted(
-            ("f" if p.is_file() else "d", p.name)
-            for p in (self.local_root / path).iterdir()
+            ("f" if p.is_file() else "d", p.name) for p in (self.root / path).iterdir()
         )
 
     @override
@@ -55,7 +52,7 @@ class LocalBackend(Backend):
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
 
-        remote_fp = self.local_root / remote_fp
+        remote_fp = self.root / remote_fp
 
         if not remote_fp.exists():
             self.logger.debug(f"远程文件 {remote_fp} 不存在")
@@ -64,12 +61,11 @@ class LocalBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                async with aiofiles.open(remote_fp, "rb+") as f:
-                    data = await f.read()
-
-                async with aiofiles.open(local_fp, "wb") as f:
-                    await f.write(data)
-
+                with remote_fp.open("rb+") as fin, local_fp.open("wb") as fout:
+                    read = run_sync(fin.read)
+                    write = run_sync(fout.write)
+                    while block := await read(4096):
+                        await write(block)
                 return True
             except Exception as e:
                 err = e
@@ -91,15 +87,16 @@ class LocalBackend(Backend):
             return False
 
         await self.mkdir(remote_fp.parent)
+        remote = self.root / remote_fp
 
         err = None
         for _ in range(max_try):
             try:
-                async with aiofiles.open(local_fp, "rb+") as f:
-                    data = await f.read()
-
-                async with aiofiles.open(self.local_root / remote_fp, "wb") as f:
-                    await f.write(data)
+                with local_fp.open("rb+") as fin, remote.open("wb") as fout:
+                    read = run_sync(fin.read)
+                    write = run_sync(fout.write)
+                    while block := await read(4096):
+                        await write(block)
 
                 return True
             except Exception as e:
@@ -116,7 +113,7 @@ class LocalBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                shutil.copytree(self.local_root / remote_fp, local_fp)
+                shutil.copytree(self.root / remote_fp, local_fp)
                 return True
             except Exception as e:
                 err = e

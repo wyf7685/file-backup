@@ -5,8 +5,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import aiofiles
-
 from src.utils import Style, run_sync
 
 from ..const import *
@@ -29,15 +27,14 @@ async def process_file(local_fp: Path) -> Tuple[int, List[bytes]]:
 
     :param local_fp: 本地文件路径
     """
-    async with aiofiles.open(local_fp, "rb") as f:
-        content = await f.read()
-    file_size = len(content)
 
     block_data = []
-    while len(content) > BLOCK_SIZE:
-        block_data.append(content[:BLOCK_SIZE])
-        content = content[BLOCK_SIZE:]
-    block_data.append(content)
+    file_size = 0
+    with local_fp.open("rb") as f:
+        read = run_sync(f.read)
+        while block := await read(BLOCK_SIZE):
+            block_data.append(block)
+            file_size += len(block)
 
     return file_size, block_data
 
@@ -49,6 +46,7 @@ async def precreate(path: str, file_size: int, block_md5: List[str]) -> Dict[str
     :param file_size: 文件总大小(Byte)
     :param block_md5: 文件切片md5列表
     """
+
     with ApiClient() as client:
         return await run_sync(
             lambda: FileuploadApi(client).xpanfileprecreate(

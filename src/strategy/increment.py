@@ -30,9 +30,9 @@ class IncrementStrategy(Strategy):
         """获取本地文件列表
 
         Returns:
-            List[Tuple[str, Path]]: 列表元素为元组: ("file"或"dir", 相对路径)
+            List[Tuple[BackupUpdateType, Path]]: 列表元素为元组: ("file"或"dir", 相对路径)
         """
-        res = []
+        res = []  # type: List[Tuple[BackupUpdateType, Path]]
 
         def iter_dir(dir: Path, r: Path) -> None:
             # self.logger.debug(f"遍历目录: {Style.PATH_DEBUG(dir)}")
@@ -45,19 +45,18 @@ class IncrementStrategy(Strategy):
 
         iter_dir(self.local, Path())
 
-        res.sort(key=lambda x: x[0])
-        return res
+        return sorted(res)
 
-    async def get_local_md5(self, fp_list: List[Path]) -> Dict[str, str]:
+    async def get_local_md5(self, fp_list: List[Path]) -> Dict[Path, str]:
         call = run_sync(get_md5)
 
-        async def _run(p: Path) -> Tuple[str, str]:
-            return str(p), await call(self.local / p)
+        async def _run(p: Path) -> Tuple[Path, str]:
+            return p, await call(self.local / p)
 
         return dict(await asyncio.gather(*[_run(p) for p in fp_list]))
 
     async def get_update_list(self) -> List[BackupUpdate]:
-        remote = {}  # type: Dict[str, BackupUpdate]
+        remote = {}  # type: Dict[Path, BackupUpdate]
         res = []  # type: List[Tuple[BackupUpdateType, Path]]
         local_list = self.get_local_list()
 
@@ -79,32 +78,30 @@ class IncrementStrategy(Strategy):
 
             # 读取备份修改记录
             for upd in remote_upd:
-                key = str(upd.path)
                 if upd.md5 != "":
-                    remote[key] = upd
-                elif key in remote and remote[key].type == "del":
-                    del remote[key]
+                    remote[upd.path] = upd
+                elif upd.path in remote and remote[upd.path].type == "del":
+                    del remote[upd.path]
 
         # 计算文件md5值
         md5_cache = await self.get_local_md5([p for t, p in local_list if t == "file"])
 
         # 对比本地待备份文件
         for t, p in local_list:
-            key = str(p)
             if t == "dir":
-                if key not in remote:
+                if p not in remote:
                     res.append((t, p))
             elif t == "file":
-                if key not in remote or (
-                    key in remote and not remote[key].check(md5_cache[key])
+                if p not in remote or (
+                    p in remote and not remote[p].check(md5_cache[p])
                 ):
                     res.append((t, p))
-            if key in remote:
-                del remote[key]
+            if p in remote:
+                del remote[p]
 
         res.extend(("del", v.path) for v in remote.values())
 
-        return [BackupUpdate(type=t, path=p, md5=md5_cache.get(str(p))) for t, p in res]
+        return [BackupUpdate(type=t, path=p, md5=md5_cache.get(p)) for t, p in res]
 
     def cache_update(self, update: List[BackupUpdate]) -> Path:
         cache = self.cache(get_uuid())

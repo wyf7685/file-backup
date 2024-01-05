@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import aiofiles
 import aiohttp
 
 from src.utils import Style, run_sync
@@ -90,8 +89,8 @@ async def get_file(local_fp: Path, remote_fp: Path):
     logger.debug(f"写入文件: {Style.PATH_DEBUG(local_fp)}")
     local_fp.parent.mkdir(parents=True, exist_ok=True)
     try:
-        async with aiofiles.open(local_fp, "wb") as f:
-            await f.write(data)
+        with local_fp.open("wb") as f:
+            await run_sync(f.write)(data)
     except Exception as err:
         raise BaiduGetFileError(
             f"写入文件 {Style.PATH(local_fp)} 时遇到错误:\n{Style.RED(err)}"

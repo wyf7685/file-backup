@@ -1,6 +1,4 @@
-from typing import TYPE_CHECKING, Any, List, Self, Tuple
-
-import aiofiles as _
+from typing import TYPE_CHECKING, List, Self, Tuple
 
 from src.const import *
 from src.log import get_logger
@@ -10,7 +8,7 @@ if TYPE_CHECKING:
     from src.log import Logger
 
 
-def _color(path: Any) -> str:
+def _color(path: StrPath) -> str:
     return Style.PATH_DEBUG(path)
 
 

@@ -28,17 +28,13 @@ ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 
 @final
 class Console(object):
-    logger: ClassVar["Logger"]
-    _callback: ClassVar[Dict[str, List[T_Callback]]]
-    _cmd_help: ClassVar[Dict[str, List[str]]]
-    _queue: ClassVar[InputQueue]
+    logger: ClassVar["Logger"] = get_logger("Console").opt(colors=True)
+    _callback: ClassVar[Dict[str, List[T_Callback]]] = defaultdict(list)
+    _cmd_help: ClassVar[Dict[str, List[str]]] = defaultdict(list)
+    _queue: ClassVar[InputQueue] = InputQueue()
 
     @classmethod
     async def start(cls) -> None:
-        cls.logger = get_logger("Console").opt(colors=True)
-        cls._callback = defaultdict(list)
-        cls._cmd_help = defaultdict(list)
-        cls._queue = InputQueue()
         await cls._run()
 
     @classmethod

@@ -4,7 +4,7 @@ import shutil
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, override
 
 from src.backend import Backend, get_backend
 from src.const import PATH
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from src.log import Logger
 
 
-class Strategy(metaclass=ABCMeta):
+class BaseStrategy(metaclass=ABCMeta):
     logger: "Logger"
     config: BackupConfig
     _backend: Type[Backend]
@@ -25,6 +25,28 @@ class Strategy(metaclass=ABCMeta):
     client: Backend
     record: List[BackupRecord]
 
+    @abstractmethod
+    async def _on_init(self):
+        ...
+
+    @abstractmethod
+    async def _make_backup(self) -> None:
+        ...
+
+    @abstractmethod
+    async def _make_recovery(self, record: BackupRecord) -> Tuple[str, Path]:
+        ...
+
+    @abstractmethod
+    async def make_backup(self) -> None:
+        ...
+
+    @abstractmethod
+    async def make_recovery(self, record: BackupRecord) -> None:
+        ...
+
+
+class Strategy(BaseStrategy):
     def __init__(self, config: BackupConfig):
         self.config = config
         self._backend = get_backend()
@@ -141,6 +163,7 @@ class Strategy(metaclass=ABCMeta):
         await run_sync(shutil.move)(result, self.local)
         self.logger.success(f"备份 [{Style.CYAN(uuid)}] 恢复完成!")
 
+    @override
     async def make_backup(self) -> None:
         await self.prepare(miss_ok=True)
         try:
@@ -153,6 +176,7 @@ class Strategy(metaclass=ABCMeta):
             await self.cleanup()
             raise err
 
+    @override
     async def make_recovery(self, record: BackupRecord) -> None:
         await self.prepare()
         uuid, result = None, None
@@ -162,15 +186,3 @@ class Strategy(metaclass=ABCMeta):
             if uuid and result:
                 await self._finish_recovery(uuid, result)
             await self.cleanup()
-
-    @abstractmethod
-    async def _on_init(self):
-        raise NotImplemented
-
-    @abstractmethod
-    async def _make_backup(self) -> None:
-        raise NotImplemented
-
-    @abstractmethod
-    async def _make_recovery(self, record: BackupRecord) -> Tuple[str, Path]:
-        raise NotImplemented

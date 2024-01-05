@@ -16,14 +16,13 @@ from typing import (
     override,
 )
 
-import aiofiles
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
 from src.const import *
 from src.const.exceptions import StopOperation
 from src.models import ServerConfig
-from src.utils import Style, mkdir
+from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
 
@@ -140,8 +139,8 @@ class ServerBackend(Backend):
             try:
                 res = await self._request("get_file", path=remote_fp)
                 if res.success:
-                    async with aiofiles.open(local_fp, "wb") as f:
-                        await f.write(b64decode(res.data["file"]))
+                    with local_fp.open("wb") as f:
+                        await run_sync(f.write)(b64decode(res.data["file"]))
                     return True
                 err = res.message
                 break
@@ -169,8 +168,8 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                async with aiofiles.open(local_fp, "rb+") as f:
-                    data = await f.read()
+                with local_fp.open("rb+") as f:
+                    data = await run_sync(f.read)()
                 res = await self._request(
                     "put_file",
                     path=remote_fp,
