@@ -1,5 +1,5 @@
 import typing as _t
-from .backend import Backend as Backend
+from .backend import BaseBackend as Backend
 
 
 def get_backend() -> _t.Type[Backend]:

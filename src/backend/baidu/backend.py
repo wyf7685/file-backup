@@ -33,23 +33,20 @@ class BaiduBackend(Backend):
         return self
 
     @override
-    async def mkdir(self, path: StrPath) -> None:
-        await super(BaiduBackend, self).mkdir(path)
+    async def _mkdir(self, path: StrPath) -> None:
         if not isinstance(path, Path):
             path = Path(path)
 
         await mkdir(path)
 
     @override
-    async def rmdir(self, path: StrPath) -> None:
-        await super(BaiduBackend, self).rmdir(path)
+    async def _rmdir(self, path: StrPath) -> None:
         # rmdir
-        raise NotImplemented
+        # raise NotImplemented
+        ...
 
     @override
-    async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
-        await super(BaiduBackend, self).list_dir(path)
-
+    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         if isinstance(path, str):
             path = Path(path)
 
@@ -57,14 +54,12 @@ class BaiduBackend(Backend):
             return sorted(await list_dir(path))
         except BaiduError as err:
             self.logger.debug(err)
-            return []
+            raise err
 
     @override
-    async def get_file(
+    async def _get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(BaiduBackend, self).get_file(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -82,11 +77,9 @@ class BaiduBackend(Backend):
         return False
 
     @override
-    async def put_file(
+    async def _put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(BaiduBackend, self).put_file(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -107,11 +100,9 @@ class BaiduBackend(Backend):
         return False
 
     @override
-    async def get_tree(
+    async def _get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(BaiduBackend, self).get_tree(local_fp, remote_fp, max_try)
-
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):
@@ -130,11 +121,9 @@ class BaiduBackend(Backend):
         return True
 
     @override
-    async def put_tree(
+    async def _put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(BaiduBackend, self).put_tree(local_fp, remote_fp, max_try)
-
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):

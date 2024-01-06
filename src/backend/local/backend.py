@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple, override
+from typing import TYPE_CHECKING, List, Self, Tuple, override
 
 from src.const import StrPath
 from src.utils import Style, mkdir, run_sync
@@ -15,38 +15,35 @@ class LocalBackend(Backend):
     root: Path
     logger: "Logger"
 
+    @classmethod
     @override
-    def __init__(self) -> None:
+    async def create(cls) -> Self:
         from src.models import config
 
-        super(LocalBackend, self).__init__()
+        self = cls()
         self.root = config.backend.local.storage
+        return self
 
     @override
-    async def mkdir(self, path: StrPath) -> None:
-        await super(LocalBackend, self).mkdir(path)
+    async def _mkdir(self, path: StrPath) -> None:
         if not isinstance(path, Path):
             path = Path(path)
         mkdir(self.root / path)
 
     @override
-    async def rmdir(self, path: StrPath) -> None:
-        await super(LocalBackend, self).rmdir(path)
+    async def _rmdir(self, path: StrPath) -> None:
         shutil.rmtree(self.root / path)
 
     @override
-    async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
-        await super(LocalBackend, self).list_dir(path)
+    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         return sorted(
             ("f" if p.is_file() else "d", p.name) for p in (self.root / path).iterdir()
         )
 
     @override
-    async def get_file(
+    async def _get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(LocalBackend, self).get_file(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -73,11 +70,9 @@ class LocalBackend(Backend):
         return False
 
     @override
-    async def put_file(
+    async def _put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(LocalBackend, self).put_file(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -105,11 +100,9 @@ class LocalBackend(Backend):
         return False
 
     @override
-    async def get_tree(
+    async def _get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(LocalBackend, self).get_tree(local_fp, remote_fp, max_try)
-
         err = None
         for _ in range(max_try):
             try:
@@ -121,11 +114,9 @@ class LocalBackend(Backend):
         return False
 
     @override
-    async def put_tree(
+    async def _put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(LocalBackend, self).put_tree(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
 

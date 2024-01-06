@@ -59,11 +59,11 @@ class ServerBackend(Backend):
     headers: Dict[str, str]
 
     @override
-    def __init__(self) -> None:
+    @classmethod
+    async def create(cls) -> Self:
         from src.models import config
 
-        super(ServerBackend, self).__init__()
-
+        self = cls()
         self.config = config.backend.server
         self.headers = deepcopy(HEADERS)
         self.headers["X-7685-Token"] = self.config.token
@@ -71,11 +71,6 @@ class ServerBackend(Backend):
 
         if not self.config.url.endswith("/"):
             self.config.url += "/"
-
-    @override
-    @classmethod
-    async def create(cls) -> Self:
-        self = await super().create()
         res = await self._request("status")
         if res.failed:
             raise StopOperation(f"ServerBackend 状态异常: {res.message}")
@@ -101,22 +96,19 @@ class ServerBackend(Backend):
             return _Result(status="error", message=f"{e.__class__.__name__}: {e}")
 
     @override
-    async def mkdir(self, path: StrPath) -> None:
-        await super(ServerBackend, self).mkdir(path)
+    async def _mkdir(self, path: StrPath) -> None:
         res = await self._request("mkdir", path=path)
         if res.failed:
             self.logger.error(res.message)
 
     @override
-    async def rmdir(self, path: StrPath) -> None:
-        await super(ServerBackend, self).rmdir(path)
+    async def _rmdir(self, path: StrPath) -> None:
         res = await self._request("rmdir", path=path)
         if res.failed:
             self.logger.error(res.message)
 
     @override
-    async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
-        await super(ServerBackend, self).list_dir(path)
+    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
         res = await self._request("list_dir", path=path)
         if res.failed:
             self.logger.error(res.message)
@@ -124,11 +116,9 @@ class ServerBackend(Backend):
         return sorted(res.data["list"])
 
     @override
-    async def get_file(
+    async def _get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(ServerBackend, self).get_file(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -150,11 +140,9 @@ class ServerBackend(Backend):
         return False
 
     @override
-    async def put_file(
+    async def _put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(ServerBackend, self).put_file(local_fp, remote_fp, max_try)
-
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -185,11 +173,9 @@ class ServerBackend(Backend):
         return False
 
     @override
-    async def get_tree(
+    async def _get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(ServerBackend, self).get_tree(local_fp, remote_fp, max_try)
-
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):
@@ -208,11 +194,9 @@ class ServerBackend(Backend):
         return True
 
     @override
-    async def put_tree(
+    async def _put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> bool:
-        await super(ServerBackend, self).put_tree(local_fp, remote_fp, max_try)
-
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):
