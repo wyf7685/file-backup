@@ -1,19 +1,15 @@
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Self, Tuple, override
+from typing import List, Self, Tuple, override
 
 from src.const import StrPath
 from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
 
-if TYPE_CHECKING:
-    from src.log import Logger
-
 
 class LocalBackend(Backend):
     root: Path
-    logger: "Logger"
 
     @classmethod
     @override

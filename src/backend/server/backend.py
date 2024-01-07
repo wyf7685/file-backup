@@ -5,7 +5,6 @@ from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     Any,
     Dict,
     List,
@@ -26,8 +25,6 @@ from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
 
-if TYPE_CHECKING:
-    from src.log import Logger
 
 HEADERS = {
     "Accept": "application/json",
@@ -53,7 +50,6 @@ class _Result(BaseModel):
 
 
 class ServerBackend(Backend):
-    logger: "Logger"
     config: ServerConfig
     session: ClientSession
     headers: Dict[str, str]

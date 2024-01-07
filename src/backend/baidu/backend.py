@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple, override
+from typing import List, Tuple, override
 
 from src.const import StrPath
 from src.models import BaiduConfig
@@ -10,13 +10,9 @@ from ..backend import Backend
 from .sdk import get_file, list_dir, mkdir, put_file, refresh_access_token
 from .sdk.exceptions import BaiduError
 
-if TYPE_CHECKING:
-    from src.log import Logger
-
 
 class BaiduBackend(Backend):
     config: BaiduConfig
-    logger: "Logger"
 
     @override
     def __init__(self) -> None:
