@@ -18,7 +18,7 @@ from src.utils import (
     unpack_7zip,
 )
 
-from .strategy import Strategy
+from ..strategy import Strategy
 
 
 class IncrementStrategy(Strategy):

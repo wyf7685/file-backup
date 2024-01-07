@@ -5,7 +5,7 @@ from src.const.exceptions import StopRecovery
 from src.models import BackupRecord
 from src.utils import Style, compress_password, get_uuid, mkdir, pack_7zip, unpack_7zip
 
-from .strategy import Strategy
+from ..strategy import Strategy
 
 
 class CompressStrategy(Strategy):
