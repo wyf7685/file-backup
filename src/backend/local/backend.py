@@ -48,7 +48,7 @@ class LocalBackend(Backend):
         remote_fp = self.root / remote_fp
 
         if not remote_fp.exists():
-            self.logger.debug(f"远程文件 {remote_fp} 不存在")
+            self.logger.debug(f"远程文件 {Style.PATH_DEBUG(remote_fp)} 不存在")
             return False
 
         err = None
