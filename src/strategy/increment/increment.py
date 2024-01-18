@@ -62,7 +62,9 @@ class IncrementStrategy(Strategy):
 
         # 按序遍历历史备份
         for uuid in [i.uuid for i in self.record]:
-            self.logger.debug(f"下载 [{Style.CYAN(uuid)}] 的备份清单")
+            self.logger.debug(
+                f"下载 {Style.CYAN(self.config.name)} [{Style.CYAN(uuid)}] 的备份清单"
+            )
             cache_fp = self.CACHE / f"{uuid}.json"
             remote_fp = self.remote / uuid / "update.json"
 
@@ -92,9 +94,7 @@ class IncrementStrategy(Strategy):
                 if p not in remote:
                     res.append((t, p))
             elif t == "file":
-                if p not in remote or (
-                    p in remote and not remote[p].check(md5_cache[p])
-                ):
+                if p not in remote or (p in remote and remote[p].md5 != md5_cache[p]):
                     res.append((t, p))
             if p in remote:
                 del remote[p]

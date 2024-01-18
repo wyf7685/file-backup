@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from src.utils import Style, run_sync
 
-from ..const import *
+from ..const import PATH_ROOT
 from ..exceptions import BaiduMakeDirectoryError
 from ..openapi_client import ApiClient, ApiException
 from ..openapi_client.api.fileupload_api import FileuploadApi

@@ -14,10 +14,11 @@ class LocalBackend(Backend):
     @classmethod
     @override
     async def create(cls) -> Self:
-        from src.models import config
+        from ..config import config
 
         self = cls()
-        self.root = config.backend.local.storage
+        self.root = config.local.storage
+        mkdir(self.root)
         return self
 
     @override
@@ -79,6 +80,7 @@ class LocalBackend(Backend):
 
         await self.mkdir(remote_fp.parent)
         remote = self.root / remote_fp
+        mkdir(remote.parent)
 
         err = None
         for _ in range(max_try):

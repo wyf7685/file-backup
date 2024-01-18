@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, List, Self, Tuple, override
 
-from src.const import *
+from src.const import StrPath
 from src.log import get_logger
 from src.utils import Style
 

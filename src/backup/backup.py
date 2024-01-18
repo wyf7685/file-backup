@@ -1,6 +1,7 @@
 import asyncio
+
+from src.config import BackupConfig
 from src.const.exceptions import RestartBackup, StopOperation
-from src.models import BackupConfig
 from src.strategy import StrategyProtocol, get_strategy
 from src.utils import Style
 

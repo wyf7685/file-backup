@@ -1,6 +1,7 @@
-from src.models import BaiduConfig, config as _config
+from ...config import BaiduConfig
+from ...config import config as _config
 
-config: BaiduConfig = _config.backend.baidu
+config: BaiduConfig = _config.baidu
 
 _refreshing: bool = False
 
@@ -12,7 +13,8 @@ def get_logger(name: str):
 
 
 async def refresh_access_token() -> None:
-    import time, asyncio
+    import asyncio
+    import time
 
     global _refreshing
     while _refreshing:
@@ -23,6 +25,7 @@ async def refresh_access_token() -> None:
         return
 
     from src.utils import Style, run_sync
+
     from .openapi_client import ApiClient, ApiException
     from .openapi_client.api.auth_api import AuthApi
 

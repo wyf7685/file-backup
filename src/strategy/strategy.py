@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Tuple, Type, override
 
 from src.backend import Backend, get_backend
+from src.config import BackupConfig
 from src.const import PATH
 from src.const.exceptions import RestartBackup, StopBackup, StopOperation
 from src.log import get_logger
-from src.models import *
+from src.models import BackupRecord
 from src.utils import Style, get_uuid, mkdir, run_sync
 
 if TYPE_CHECKING:

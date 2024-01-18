@@ -1,4 +1,5 @@
-from src.models import BackupConfig, BackupRecord
+from src.config import BackupConfig
+from src.models import BackupRecord
 from src.strategy import StrategyProtocol, get_strategy
 from src.utils import Style
 

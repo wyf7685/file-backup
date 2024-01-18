@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Tuple, override
 
 from src.const import StrPath
-from src.models import BaiduConfig
+from ..config import BaiduConfig
 from src.utils import Style
 from src.utils import mkdir as local_mkdir
 
@@ -16,10 +16,10 @@ class BaiduBackend(Backend):
 
     @override
     def __init__(self) -> None:
-        from src.models import config
+        from ..config import config
 
         super(BaiduBackend, self).__init__()
-        self.config = config.backend.baidu
+        self.config = config.baidu
 
     @override
     @classmethod

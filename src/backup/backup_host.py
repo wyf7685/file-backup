@@ -2,8 +2,8 @@ import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING, ClassVar, Dict
 
+from src.config import BackupConfig, config
 from src.log import get_logger
-from src.models import BackupConfig, Style, config
 from src.utils import Style
 
 from .backup import Backup

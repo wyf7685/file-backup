@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import List
 
 from src.backend import Backend, get_backend
-from src.const import PATH
+from src.config import BackupConfig, config
+from src.const import PATH, BackupModeSet
 from src.const.exceptions import CommandExit
 from src.log import set_log_level
-from src.models import *
-from src.utils import get_uuid
+from src.models import BackupRecord, find_backup
+from src.utils import Style, get_uuid
 
 from .console import Console
 
@@ -29,13 +30,13 @@ async def cmd_help(*_) -> None:
             logger.info(f"{Style.GREEN(cmd)} - {help}")
 
 
-@Console.register("reload", "重载配置文件", alias=["r"])
-async def cmd_reload(*_) -> None:
-    try:
-        config.reload()
-        Console.logger.success("配置文件重载成功!")
-    except Exception as err:
-        Console.logger.error(f"配置文件重载失败: {err}")
+# @Console.register("reload", "重载配置文件", alias=["r"])
+# async def cmd_reload(*_) -> None:
+#     try:
+#         config.reload()
+#         Console.logger.success("配置文件重载成功!")
+#     except Exception as err:
+#         Console.logger.error(f"配置文件重载失败: {err}")
 
 
 def format_backup_info(backup: BackupConfig) -> List[str]:

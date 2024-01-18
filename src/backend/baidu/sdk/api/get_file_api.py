@@ -6,7 +6,7 @@ import aiohttp
 
 from src.utils import Style, run_sync
 
-from ..const import *
+from ..const import PATH_ROOT
 from ..exceptions import BaiduGetFileError, BaiduListDirectoryError
 from ..openapi_client import ApiClient, ApiException
 from ..openapi_client.api.multimediafile_api import MultimediafileApi

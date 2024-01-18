@@ -1,8 +1,9 @@
 import functools
-from functools import partial
 import re
-from typing import Any, Dict, Sequence, TextIO, Tuple, override, Callable
-from colorama.ansi import AnsiFore, AnsiBack, AnsiStyle
+from functools import partial
+from typing import Callable, Dict, Sequence, TextIO, override
+
+from colorama.ansi import AnsiBack, AnsiFore, AnsiStyle
 from colorama.ansitowin32 import AnsiToWin32
 
 # Control Sequence Introducer
@@ -115,10 +116,11 @@ class AnsiToHtml(AnsiToWin32):
 def _init_log_html() -> int:
     from datetime import date
     from io import StringIO
-    from src.log import logger, default_filter, default_format
+
+    from src.log import default_filter, default_format, logger
 
     def sink(msg: str) -> None:
-        from src.models import config
+        from src.config import config
         if not config.experiment.log_html:
             return
 

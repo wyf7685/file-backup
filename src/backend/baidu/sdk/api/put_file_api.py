@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Tuple
 
 from src.utils import Style, run_sync
 
-from ..const import *
+from ..const import PATH_ROOT, BLOCK_SIZE
 from ..exceptions import (
     BaiduUploadBlockError,
     BaiduUploadCreateError,

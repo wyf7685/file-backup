@@ -4,27 +4,17 @@ from base64 import b64decode, b64encode
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    List,
-    Literal,
-    Self,
-    Tuple,
-    TypeAlias,
-    override,
-)
+from typing import Any, Dict, List, Literal, Self, Tuple, TypeAlias, override
 
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
-from src.const import *
+from src.const import VERSION, StrPath
 from src.const.exceptions import StopOperation
-from src.models import ServerConfig
 from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
-
+from ..config import ServerConfig
 
 HEADERS = {
     "Accept": "application/json",
@@ -57,10 +47,10 @@ class ServerBackend(Backend):
     @override
     @classmethod
     async def create(cls) -> Self:
-        from src.models import config
+        from ..config import config
 
         self = cls()
-        self.config = config.backend.server
+        self.config = config.server
         self.headers = deepcopy(HEADERS)
         self.headers["X-7685-Token"] = self.config.token
         self.session = ClientSession()

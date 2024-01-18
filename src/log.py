@@ -93,7 +93,7 @@ LOGGING_CONFIG = {
         },
     },
     "loggers": {
-        "uvicorn": {"handlers": ["default"], "level": "INFO"},
+        "uvicorn": {"handlers": [], "level": "INFO"},
         "uvicorn.error": {"handlers": ["default"], "level": "INFO"},
         "uvicorn.access": {"handlers": ["default"], "level": "INFO"},
     },
@@ -119,7 +119,7 @@ def init_logger_sink() -> tuple[int, int]:
         "./logs/{time:YYYY-MM-DD}.log",
         rotation="00:00",
         level=0,
-        diagnose=True,
+        diagnose=False,
         filter=default_filter,
         format=default_format,
         enqueue=True,
