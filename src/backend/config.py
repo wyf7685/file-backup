@@ -1,4 +1,4 @@
-from pathlib import Path
+from typing import Tuple, Type
 
 from pydantic import BaseModel, Field
 
@@ -7,29 +7,8 @@ from src.config import config as global_config
 from src.const import BackendType
 
 
-class LocalConfig(BaseModel):
-    storage: Path = Field(default=Path("backup"))
-
-
-class ServerConfig(BaseModel):
-    url: str = Field(default="http://127.0.0.1:8008")
-    token: str = Field(default="token")
-    api_key: str = Field(default="api_key")
-
-
-class BaiduConfig(BaseModel):
-    app_id: str = Field(default="app_id")
-    app_secret: str = Field(default="app_secret")
-    access_token: str = Field(default="access_token")
-    refresh_token: str = Field(default="refresh_token")
-    expire: int = Field(default=0)
-
-
-class BackendConfig(BaseModel):
+class BackendConfig(ConfigModel):
     type: BackendType = Field(default="local")
-    local: LocalConfig = Field(default_factory=LocalConfig)
-    server: ServerConfig = Field(default_factory=ServerConfig)
-    baidu: BaiduConfig = Field(default_factory=BaiduConfig)
 
     def save(self):
         global_config.save()
@@ -40,3 +19,38 @@ class Config(ConfigModel):
 
 
 config = global_config.parse_config(Config).backend
+
+
+def _mix_config(config_cls: Type) -> Tuple[str, Config]:
+    name = getattr(config_cls, "__backend_name__", None)
+    assert name is not None, "Backend 的 Config 类必须拥有 __backend_name__ 属性"
+    Mixed = type(
+        config_cls.__name__,
+        (BackendConfig,),
+        {
+            "__annotations__": {name: config_cls},
+            name: Field(default_factory=config_cls),
+        },
+    )
+
+    return name, global_config.parse_config(
+        type(
+            "Config",
+            (ConfigModel,),
+            {
+                "__annotations__": {"backend": Mixed},
+                "backend": Field(default_factory=Mixed),  # type: ignore
+            },
+        )
+    )
+
+
+def parse_config[T](config_cls: Type[T]) -> T:
+    name, parsed = _mix_config(config_cls)
+    return getattr(parsed.backend, name)
+
+
+def save_config(config: BaseModel) -> None:
+    name, parsed = _mix_config(config.__class__)
+    setattr(parsed.backend, name, config)
+    parsed.save()

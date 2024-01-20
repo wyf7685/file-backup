@@ -1,31 +1,21 @@
 from pathlib import Path
-from typing import List, Tuple, override
+from typing import List, Literal, Tuple, override
 
 from src.const import StrPath
-from ..config import BaiduConfig
 from src.utils import Style
 from src.utils import mkdir as local_mkdir
 
 from ..backend import Backend
-from .sdk import get_file, list_dir, mkdir, put_file, refresh_access_token
+from .sdk import get_file, list_dir, mkdir, put_file  # , refresh_access_token
 from .sdk.exceptions import BaiduError
 
 
 class BaiduBackend(Backend):
-    config: BaiduConfig
-
-    @override
-    def __init__(self) -> None:
-        from ..config import config
-
-        super(BaiduBackend, self).__init__()
-        self.config = config.baidu
-
     @override
     @classmethod
-    async def create(cls):
+    async def create(cls):  # sourcery skip: inline-immediately-returned-variable
         self = await super().create()
-        await refresh_access_token()
+        # await refresh_access_token()
         return self
 
     @override
@@ -37,12 +27,13 @@ class BaiduBackend(Backend):
 
     @override
     async def _rmdir(self, path: StrPath) -> None:
-        # rmdir
         # raise NotImplemented
         ...
 
     @override
-    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
+    async def _list_dir(
+        self, path: StrPath = "."
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         if isinstance(path, str):
             path = Path(path)
 
@@ -66,7 +57,7 @@ class BaiduBackend(Backend):
             try:
                 await get_file(local_fp, remote_fp)
                 return True
-            except Exception as e:
+            except BaiduError as e:
                 err = e
         self.logger.debug(f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常")
         self.logger.debug(err)

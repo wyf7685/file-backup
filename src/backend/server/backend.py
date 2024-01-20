@@ -4,7 +4,7 @@ from base64 import b64decode, b64encode
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Self, Tuple, TypeAlias, override
+from typing import Any, Dict, List, Literal, Self, Tuple, override
 
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
@@ -14,7 +14,9 @@ from src.const.exceptions import StopOperation
 from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
-from ..config import ServerConfig
+
+# from ..config import ServerConfig
+from .config import Config
 
 HEADERS = {
     "Accept": "application/json",
@@ -22,11 +24,8 @@ HEADERS = {
 }
 
 
-_ResultStatus: TypeAlias = Literal["success", "error"]
-
-
 class _Result(BaseModel):
-    status: _ResultStatus = Field()
+    status: Literal["success", "error"] = Field()
     message: str = Field(default="")
     data: Dict[str, Any] = Field(default_factory=dict)
 
@@ -40,17 +39,15 @@ class _Result(BaseModel):
 
 
 class ServerBackend(Backend):
-    config: ServerConfig
+    config: Config
     session: ClientSession
     headers: Dict[str, str]
 
     @override
     @classmethod
     async def create(cls) -> Self:
-        from ..config import config
-
         self = cls()
-        self.config = config.server
+        self.config = cls.parse_config(Config)
         self.headers = deepcopy(HEADERS)
         self.headers["X-7685-Token"] = self.config.token
         self.session = ClientSession()
@@ -69,11 +66,11 @@ class ServerBackend(Backend):
                 data[k] = str(data[k]).replace("\\", "/")
 
         salt = str(time.time())
-        hash = self.config.api_key + salt
-        hash = md5(hash.encode("utf-8")).hexdigest()
+        hash_val = self.config.api_key + salt
+        hash_val = md5(hash_val.encode("utf-8")).hexdigest()
         headers = deepcopy(self.headers)
         headers["X-7685-Salt"] = salt
-        headers["X-7685-Hash"] = hash
+        headers["X-7685-Hash"] = hash_val
 
         try:
             async with self.session.post(url, json=data, headers=headers) as resp:
@@ -94,7 +91,9 @@ class ServerBackend(Backend):
             self.logger.error(res.message)
 
     @override
-    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
+    async def _list_dir(
+        self, path: StrPath = "."
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         res = await self._request("list_dir", path=path)
         if res.failed:
             self.logger.error(res.message)
@@ -115,8 +114,9 @@ class ServerBackend(Backend):
             try:
                 res = await self._request("get_file", path=remote_fp)
                 if res.success:
+                    data = b64decode(res.data["file"])
                     with local_fp.open("wb") as f:
-                        await run_sync(f.write)(b64decode(res.data["file"]))
+                        await run_sync(f.write)(data)
                     return True
                 err = res.message
                 break

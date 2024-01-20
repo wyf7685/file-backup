@@ -20,10 +20,11 @@ class ConfigModel(BaseModel):
         return self
 
     @classmethod
-    def load(cls) -> Self:
+    def load(cls, *, silent: bool = False) -> Self:
         logger = get_logger("Config").opt(colors=True)
         config = cls()
-        logger.opt(colors=True).info(f"配置文件路径: {Style.PATH(PATH.CONFIG)}")
+        if not silent:
+            logger.opt(colors=True).info(f"配置文件路径: {Style.PATH(PATH.CONFIG)}")
 
         if PATH.CONFIG.exists():
             try:
@@ -46,5 +47,4 @@ class ConfigModel(BaseModel):
 
     @classmethod
     def parse_config[T: BaseModel](cls, model_cls: Type[T]) -> T:
-        config = type(model_cls.__name__, (cls, model_cls), {}).load()
-        return config  # type: ignore
+        return type(model_cls.__name__, (cls, model_cls), {}).load(silent=True)  # type: ignore
