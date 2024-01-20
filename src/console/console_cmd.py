@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
-from typing import List
+from typing import List, cast
 
 from src.backend import Backend, get_backend
 from src.config import BackupConfig, config
-from src.const import PATH, BackupModeSet
+from src.const import PATH, BackupMode, BackupModeSet
 from src.const.exceptions import CommandExit
 from src.log import set_log_level
 from src.models import BackupRecord, find_backup
@@ -84,7 +84,7 @@ async def cmd_query(args: List[str]) -> None:
     logger.info(f"[{Style.CYAN(name)}] 的备份记录")
     logger.info("================================")
     for i, obj in enumerate(raw):
-        record = BackupRecord.parse_obj(obj)
+        record = BackupRecord.model_validate(obj)
         logger.info(f"备份记录 - {Style.YELLOW(f'id = {i+1}')}")
         logger.info(f"    时间: {Style.GREEN(record.timestr)}")
         logger.info(f"    uuid: {Style.CYAN(record.uuid)}")
@@ -125,7 +125,7 @@ async def cmd_add(args: List[str]) -> None:
 
     backup = BackupConfig(
         name=name,
-        mode=mode,  # type: ignore
+        mode=cast(BackupMode, mode),
         local_path=local_path,
         interval=interval,
     )
