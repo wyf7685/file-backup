@@ -1,11 +1,12 @@
 import shutil
 from pathlib import Path
-from typing import List, Self, Tuple, override
+from typing import List, Literal, Self, Tuple, override
 
 from src.const import StrPath
 from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
+from .config import Config
 
 
 class LocalBackend(Backend):
@@ -14,10 +15,8 @@ class LocalBackend(Backend):
     @classmethod
     @override
     async def create(cls) -> Self:
-        from ..config import config
-
         self = cls()
-        self.root = config.local.storage
+        self.root = cls.parse_config(Config).storage
         mkdir(self.root)
         return self
 
@@ -32,7 +31,9 @@ class LocalBackend(Backend):
         shutil.rmtree(self.root / path)
 
     @override
-    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
+    async def _list_dir(
+        self, path: StrPath = "."
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         return sorted(
             ("f" if p.is_file() else "d", p.name) for p in (self.root / path).iterdir()
         )

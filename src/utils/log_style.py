@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Self, Iterable
 
 class _StyleInt(int):
     @functools.cache
-    def __keys(self) -> Iterable[str]:
+    def __keys(self) -> List[str]:
         keys = []  # type: List[str]
         k = 1
         style = self
@@ -13,7 +13,7 @@ class _StyleInt(int):
                 keys.append(_STYLE_MAP[_StyleInt(k)])
             style >>= 1
             k <<= 1
-        return iter(keys)
+        return keys
 
     @functools.cache
     def __call__(self, value: Any, fix: bool = True) -> str:

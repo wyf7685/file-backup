@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Literal, Tuple
 
 from src.utils import Style, run_sync
 
@@ -25,7 +25,7 @@ async def listall(path: str):
         )()
 
 
-async def list_dir(path: Path) -> List[Tuple[str, str]]:
+async def list_dir(path: Path) -> List[Tuple[Literal["d", "f"], str]]:
     logger = get_logger("list_dir").opt(colors=True)
     logger.debug(f"列出目录: {Style.PATH_DEBUG(path)}")
 

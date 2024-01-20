@@ -1,9 +1,11 @@
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, List, Self, Tuple, override
+from typing import TYPE_CHECKING, List, Self, Tuple, Type, override, Literal
 
 from src.const import StrPath
 from src.log import get_logger
 from src.utils import Style
+
+from .config import parse_config
 
 if TYPE_CHECKING:
     from src.log import Logger
@@ -19,6 +21,10 @@ class BaseBackend(metaclass=ABCMeta):
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__).opt(colors=True)
 
+    @staticmethod
+    def parse_config[T](config_cls: Type[T]) -> T:
+        return parse_config(config_cls)
+
     @classmethod
     @abstractmethod
     async def create(cls) -> Self:
@@ -33,7 +39,9 @@ class BaseBackend(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
+    async def list_dir(
+        self, path: StrPath = "."
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         ...
 
     @abstractmethod
@@ -69,7 +77,9 @@ class BaseBackend(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    async def _list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
+    async def _list_dir(
+        self, path: StrPath = "."
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         ...
 
     @abstractmethod
@@ -112,7 +122,9 @@ class Backend(BaseBackend):
         self.logger.debug(f"删除目录: {_color(path)}")
 
     @override
-    async def list_dir(self, path: StrPath = ".") -> List[Tuple[str, str]]:
+    async def list_dir(
+        self, path: StrPath = "."
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         self.logger.debug(f"列出目录: {_color(path)}")
         return await self._list_dir(path)
 
