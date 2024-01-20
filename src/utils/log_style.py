@@ -1,11 +1,11 @@
-import typing as _t
 import functools
+from typing import Any, Dict, List, Self, Iterable
 
 
 class _StyleInt(int):
     @functools.cache
-    def __keys(self) -> _t.List[str]:
-        keys = []  # type: _t.List[str]
+    def __keys(self) -> Iterable[str]:
+        keys = []  # type: List[str]
         k = 1
         style = self
         while style:
@@ -13,10 +13,10 @@ class _StyleInt(int):
                 keys.append(_STYLE_MAP[_StyleInt(k)])
             style >>= 1
             k <<= 1
-        return keys
+        return iter(keys)
 
     @functools.cache
-    def __call__(self, value: _t.Any, fix: bool = True) -> str:
+    def __call__(self, value: Any, fix: bool = True) -> str:
         text = str(value)
         if fix:
             text = text.replace("<", "\\<")
@@ -24,8 +24,8 @@ class _StyleInt(int):
             text = f"<{key}>{text}</{key}>"
         return text
 
-    def __or__(self, value: int) -> _t.Self:
-        return type(self)(int(self) | int(value))
+    def __or__(self, value: int) -> Self:
+        return type(self)(int(self) | value)
 
     def __repr__(self) -> str:
         return f"<StyleInt {super().__repr__()}: {','.join(self.__keys())}>"
@@ -74,7 +74,7 @@ class Style:
     PATH_DEBUG = StyleInt(12, 20, 23)
 
 
-_STYLE_MAP: _t.Dict[_StyleInt, str] = {
+_STYLE_MAP: Dict[_StyleInt, str] = {
     Style.BLACK: "k",
     Style.RED: "r",
     Style.GREEN: "g",
