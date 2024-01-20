@@ -30,20 +30,13 @@ class IncrementStrategy(Strategy):
         """获取本地文件列表
 
         Returns:
-            List[Tuple[BackupUpdateType, Path]]: 列表元素为元组: ("file"或"dir", 相对路径)
+            `List[Tuple[BackupUpdateType, Path]]`: 列表元素为元组: ("file"或"dir", 相对路径)
         """
         res = []  # type: List[Tuple[BackupUpdateType, Path]]
 
-        def iter_dir(dir: Path, r: Path) -> None:
-            # self.logger.debug(f"遍历目录: {Style.PATH_DEBUG(dir)}")
-            for p in dir.iterdir():
-                if p.is_file():
-                    res.append(("file", r / p.name))
-                elif p.is_dir():
-                    res.append(("dir", r / p.name))
-                    iter_dir(p, r / p.name)
-
-        iter_dir(self.local, Path())
+        for p, dirs, files in self.local.walk():
+            res.extend(("dir", (p / i).relative_to(self.local)) for i in dirs)
+            res.extend(("file", (p / i).relative_to(self.local)) for i in files)
 
         return sorted(res)
 
@@ -57,7 +50,6 @@ class IncrementStrategy(Strategy):
 
     async def get_update_list(self) -> List[BackupUpdate]:
         remote = {}  # type: Dict[Path, BackupUpdate]
-        res = []  # type: List[Tuple[BackupUpdateType, Path]]
         local_list = self.get_local_list()
 
         # 按序遍历历史备份
@@ -89,6 +81,7 @@ class IncrementStrategy(Strategy):
         md5_cache = await self.get_local_md5([p for t, p in local_list if t == "file"])
 
         # 对比本地待备份文件
+        res = []  # type: List[Tuple[BackupUpdateType, Path]]
         for t, p in local_list:
             if t == "dir":
                 if p not in remote:
@@ -100,8 +93,7 @@ class IncrementStrategy(Strategy):
                 del remote[p]
 
         res.extend(("del", v.path) for v in remote.values())
-
-        return [BackupUpdate(type=t, path=p, md5=md5_cache.get(p)) for t, p in res]
+        return [BackupUpdate(type=t, path=p, md5=md5_cache[p]) for t, p in res]
 
     def cache_update(self, update: List[BackupUpdate]) -> Path:
         cache = self.cache(get_uuid())
@@ -122,7 +114,10 @@ class IncrementStrategy(Strategy):
 
         self.logger.debug("开始压缩待备份文件...")
         archives = await pack_7zip_multipart(
-            archive_dir / f"{uuid}.7z", cache, volume_size=100, password=password
+            archive_dir / f"{uuid}.7z",
+            cache,
+            volume_size=100,
+            password=password,
         )
         self.logger.debug("待备份文件分卷压缩完成")
 
