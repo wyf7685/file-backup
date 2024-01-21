@@ -1,7 +1,5 @@
 # `file-backup` 程序说明
 
-咕咕咕
-
 - `main.py`
 
   主程序文件，程序入口。
@@ -24,6 +22,8 @@
 
 - `src/backup/`
 
+  备份任务相关逻辑。
+
   - `backup.py`
 
     处理备份任务。
@@ -38,6 +38,8 @@
 
 - `src/config/`
 
+    全局配置处理和解析。
+
   - `config_model.py`
 
     继承 `pydantic.BaseModel` 定义 `ConfigModel` 类，实现配置文件的读取写入操作。
@@ -49,6 +51,8 @@
     默认的全局配置对象。
 
 - `src/console/`
+
+    控制台输入和处理。
 
   - `console.py`
 
@@ -107,6 +111,8 @@
 
 - `src/recover/`
 
+  恢复任务相关逻辑。
+
   - `recover.py`
 
     处理恢复任务。
@@ -118,7 +124,7 @@
 - `src/strategy/`
 
   - `strategy.py`
-    
+
     定义 `BaseStrategy` 抽象类，处理备份和恢复的具体逻辑。
 
     继承 `BaseStrategy` 定义 `Strategy` 抽象类，实现备份记录处理逻辑和一些共用代码。
@@ -128,7 +134,7 @@
     定义 `StrategyProtocol` 协议供外部引用，可使用 `isinstance` 检查是否实现 `Strategy` 相关函数。
 
   - `increment/` `compress/` `...`
-    
+
     备份恢复具体逻辑的实现。
 
 - `src/utils/`
@@ -164,9 +170,9 @@
 
     [`实验性功能`] 不建议使用
 
-    继承 `colorama` 模块的 `AnsiToWin32` 类，定义 `AnsiToHtml` 类，将其中调用 win32 api 的部分替换为输出 html 标签，实现 ansi控制符 转 html文本。
+    继承 `colorama` 模块的 `AnsiToWin32` 类，定义 `AnsiToHtml` 类，将其中调用 win32 api 的部分替换为输出 html 标签，实现 ansi 控制符 转 html 文本。
 
-    附带将日志以html格式输出的功能，可通过修改配置文件开启。
+    附带将日志以 html 格式输出的功能，可通过修改配置文件开启。
 
 - `src/log.py`
 
