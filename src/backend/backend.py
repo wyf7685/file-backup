@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from typing import TYPE_CHECKING, List, Literal, Optional, Self, Set, Tuple, Type, override
 
 from src.const import StrPath
@@ -73,7 +74,7 @@ class BaseBackend(metaclass=ABCMeta):
 
 
 class Backend(BaseBackend):
-    __mkdir_cache: Set[StrPath]
+    __mkdir_cache: Set[Path]
 
     def __init__(self):
         super().__init__()
@@ -126,7 +127,7 @@ class Backend(BaseBackend):
     async def mkdir(self, path: StrPath) -> None:
         if path in self.__mkdir_cache:
             return
-        self.__mkdir_cache.add(path)
+        self.__mkdir_cache.add(Path(path))
         self.logger.debug(f"创建目录: {_color(path)}")
 
     @override
