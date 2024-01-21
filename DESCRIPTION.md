@@ -38,7 +38,7 @@
 
 - `src/config/`
 
-    全局配置处理和解析。
+  全局配置处理和解析。
 
   - `config_model.py`
 
@@ -52,7 +52,7 @@
 
 - `src/console/`
 
-    控制台输入和处理。
+  控制台输入和处理。
 
   - `console.py`
 
@@ -168,11 +168,11 @@
 
   - `ansi_html.py`
 
-    [`实验性功能`] 不建议使用
-
     继承 `colorama` 模块的 `AnsiToWin32` 类，定义 `AnsiToHtml` 类，将其中调用 win32 api 的部分替换为输出 html 标签，实现 ansi 控制符 转 html 文本。
 
-    附带将日志以 html 格式输出的功能，可通过修改配置文件开启。
+    > `[实验性功能]` 不建议使用
+    >
+    > 附带将日志以 html 格式输出的功能，可通过修改配置文件开启。
 
 - `src/log.py`
 
