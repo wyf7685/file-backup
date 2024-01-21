@@ -14,11 +14,17 @@
 
   - `backend.py`
 
-    `Backend` 抽象类。
+    `Backend` 抽象类，包含 `mkdir` `get_file` `put_file` 等文件操作。
 
   - `local/` `server/` `...`
 
-    `Backend` 类的实现。
+    分别继承 `Backend` 类，实现多种备份方式。
+
+    * `local/` 本地备份
+    * `server/` 服务器备份（需要搭配对应的HTTP服务器）
+    * `.../` 其他备份方式
+
+  > 文件操作的实现可以通过修改配置文件指定。
 
 - `src/backup/`
 
