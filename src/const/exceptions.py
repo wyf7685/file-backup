@@ -2,6 +2,7 @@ from typing import Optional
 
 
 class Error(Exception):
+    """`file-backup` 所有错误类型的基类"""
     msg: str
 
     def __init__(self, msg: str = "") -> None:
@@ -39,21 +40,5 @@ class CommandExit(StopOperation):
     pass
 
 
-class AccountError(Error):
-    pass
-
-
-class LoginError(AccountError):
-    pass
-
-
-class AccountNotLogin(LoginError):
-    pass
-
-
-class AccountLoginFailed(LoginError):
-    pass
-
-
-class RegisterFailed(AccountError):
+class BackendError(Error):
     pass

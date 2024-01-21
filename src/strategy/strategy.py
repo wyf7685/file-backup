@@ -76,14 +76,14 @@ class Strategy(BaseStrategy):
     def cache(self, uuid: str) -> Path:
         return mkdir(self.CACHE / uuid)
 
-    async def load_record(self, miss_ok: bool = False) -> None:
+    async def load_record(self, /, miss_ok: bool = False) -> None:
         remote_fp = self.remote / "backup.json"
         cache_fp = self.CACHE / "backup.json"
 
         # 下载备份记录
-        if not await self.client.get_file(cache_fp, remote_fp):
+        if err := await self.client.get_file(cache_fp, remote_fp):
             if not miss_ok:
-                raise StopOperation("备份记录下载失败")
+                raise StopOperation("备份记录下载失败") from err
             self.logger.info("备份记录不存在, 正在创建...")
             cache_fp.write_text("[]")
 
@@ -119,8 +119,8 @@ class Strategy(BaseStrategy):
         )
 
         # 上传备份清单
-        if not await self.client.put_file(cache_fp, remote_fp):
-            raise StopBackup("上传备份记录失败")
+        if err := await self.client.put_file(cache_fp, remote_fp):
+            raise StopBackup("上传备份记录失败") from err
         cache_fp.unlink()
 
     def check_local(self) -> None:

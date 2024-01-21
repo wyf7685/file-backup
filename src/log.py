@@ -119,7 +119,7 @@ def init_logger_sink() -> tuple[int, int]:
         "./logs/{time:YYYY-MM-DD}.log",
         rotation="00:00",
         level=0,
-        diagnose=False,
+        diagnose=True,
         filter=default_filter,
         format=default_format,
         enqueue=True,

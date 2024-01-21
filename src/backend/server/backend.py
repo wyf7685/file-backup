@@ -10,11 +10,10 @@ from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
 from src.const import VERSION, StrPath
-from src.const.exceptions import StopOperation
+from src.const.exceptions import BackendError, StopOperation
 from src.utils import Style, mkdir, run_sync
 
-from ..backend import Backend
-# from ..config import ServerConfig
+from ..backend import Backend, BackendResult
 from .config import Config
 
 HEADERS = {
@@ -82,27 +81,29 @@ class ServerBackend(Backend):
         res = await self._request("mkdir", path=path)
         if res.failed:
             self.logger.error(res.message)
+            raise BackendError(f"创建文件夹时出错: {res.message}")
 
     @override
     async def _rmdir(self, path: StrPath) -> None:
         res = await self._request("rmdir", path=path)
         if res.failed:
             self.logger.error(res.message)
+            raise BackendError(f"删除文件夹时出错: {res.message}")
 
     @override
     async def _list_dir(
         self, path: StrPath = "."
-    ) -> List[Tuple[Literal["d", "f"], str]]:
+    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
         res = await self._request("list_dir", path=path)
         if res.failed:
             self.logger.error(res.message)
-            return []
-        return sorted(res.data["list"])
+            return BackendError(f"列出文件夹时出错: {res.message}"), []
+        return None, sorted(res.data["list"])
 
     @override
     async def _get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> bool:
+    ) -> BackendResult:
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
@@ -116,25 +117,27 @@ class ServerBackend(Backend):
                     data = b64decode(res.data["file"])
                     with local_fp.open("wb") as f:
                         await run_sync(f.write)(data)
-                    return True
+                    return
                 err = res.message
                 break
             except Exception as e:
                 err = e
-        self.logger.debug(f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}")
-        return False
+        msg = f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}"
+        self.logger.debug(msg)
+        return BackendError(msg)
 
     @override
     async def _put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> bool:
+    ) -> BackendResult:
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if not local_fp.is_file():
-            self.logger.debug(f"上传文件失败: {Style.PATH_DEBUG(local_fp)} 不存在")
-            return False
+            msg = f"上传文件失败: {Style.PATH_DEBUG(local_fp)} 不存在"
+            self.logger.debug(msg)
+            return BackendError(msg)
 
         await self.mkdir(remote_fp.parent)
 
@@ -149,57 +152,59 @@ class ServerBackend(Backend):
                     file=b64encode(data).decode("utf-8"),
                 )
                 if res.success:
-                    return True
+                    return
                 err = res.message
                 break
             except Exception as e:
                 err = e
-        self.logger.debug(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}")
-        return False
+        msg = f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}"
+        self.logger.debug(msg)
+        return BackendError(msg)
 
     @override
     async def _get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> bool:
+    ) -> BackendResult:
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
 
-        for t, name in await self.list_dir(remote_fp):
+        err, res = await self.list_dir(remote_fp)
+        if err:
+            return err
+
+        for t, name in res:
             local = local_fp / name
             remote = remote_fp / name
             if t == "d":
-                if not await self.get_tree(mkdir(local), remote, max_try):
-                    return False
+                if err := await self.get_tree(mkdir(local), remote, max_try):
+                    return err
             elif t == "f":
-                if not await self.get_file(local, remote, max_try):
-                    return False
-
-        return True
+                if err := await self.get_file(local, remote, max_try):
+                    return err
 
     @override
     async def _put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> bool:
+    ) -> BackendResult:
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         if isinstance(local_fp, str):
             local_fp = Path(local_fp)
         if not local_fp.exists() or not local_fp.is_dir():
-            self.logger.debug(f"上传目录失败: {Style.PATH_DEBUG(local_fp)} 不存在")
-            return False
+            msg = f"上传目录失败: {Style.PATH_DEBUG(local_fp)} 不存在"
+            self.logger.debug(msg)
+            return BackendError(msg)
 
         for p in local_fp.iterdir():
             if p.is_dir():
                 await self.mkdir(remote_fp / p.name)
-                if not await self.put_tree(p, remote_fp / p.name, max_try):
-                    return False
+                if err := await self.put_tree(p, remote_fp / p.name, max_try):
+                    return err
             elif p.is_file():
-                if not await self.put_file(p, remote_fp / p.name, max_try):
-                    return False
-
-        return True
+                if err := await self.put_file(p, remote_fp / p.name, max_try):
+                    return err
 
     def __del__(self):
         asyncio.create_task(self.session.close())

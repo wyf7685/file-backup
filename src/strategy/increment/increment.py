@@ -61,8 +61,8 @@ class IncrementStrategy(Strategy):
             remote_fp = self.remote / uuid / "update.json"
 
             # 下载备份修改记录
-            if not await self.client.get_file(cache_fp, remote_fp):
-                raise StopBackup(f"下载备份清单 {remote_fp} 失败")
+            if err := await self.client.get_file(cache_fp, remote_fp):
+                raise StopBackup(f"下载备份清单 {remote_fp} 失败") from err
 
             # 将修改记录转换为对象
             remote_upd = [
@@ -125,18 +125,18 @@ class IncrementStrategy(Strategy):
         self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
 
         async def upload(archive: Path) -> None:
-            if not await self.client.put_file(archive, target / archive.name):
-                raise StopBackup(f"上传分卷压缩包 {Style.PATH(archive.name)} 失败")
+            if err := await self.client.put_file(archive, target / archive.name):
+                raise StopBackup(f"上传分卷压缩包 {Style.PATH(archive.name)} 失败") from err
 
         await asyncio.gather(*[upload(i) for i in archives])
 
         multipart_cache = cache / "multipart.txt"
         multipart_cache.write_text("\n".join(i.name for i in archives))
         self.logger.debug(f"上传分卷清单: {Style.PATH_DEBUG(multipart_cache)}")
-        if not await self.client.put_file(
+        if err := await self.client.put_file(
             multipart_cache, target / multipart_cache.name
         ):
-            raise StopBackup("上传分卷清单失败")
+            raise StopBackup("上传分卷清单失败") from err
 
     @override
     async def _make_backup(self) -> None:
@@ -166,8 +166,11 @@ class IncrementStrategy(Strategy):
         # 生成本次备份清单
         upd_file_cnt = len([upd for upd in update if upd.type == "file"])
         upd_cache = cache / "update.json"
-        upd_cache.write_text(json.dumps([json.loads(upd.json()) for upd in update]))
-        await self.client.put_file(upd_cache, target / "update.json")
+        upd_cache.write_text(
+            json.dumps([json.loads(upd.model_dump_json()) for upd in update])
+        )
+        if err := await self.client.put_file(upd_cache, target / "update.json"):
+            raise StopBackup(f"上传备份清单时出现错误: {err}") from err
 
         # 更新备份记录
         await self.add_record(uuid)
@@ -180,17 +183,17 @@ class IncrementStrategy(Strategy):
         updates = {}
         for rec in records:
             self.logger.debug(f"加载备份 [{Style.CYAN(rec.uuid)}]")
-            cache = self.cache(f"{rec.uuid}-{id(updates)}")
+            cache = self.cache(f"{id(updates)}-{rec.uuid}")
 
             # 下载备份清单
             cache_fp = cache / f"{rec.uuid}.json"
             remote_fp = self.remote / rec.uuid / "update.json"
-            if not await self.client.get_file(cache_fp, remote_fp):
-                raise StopRecovery(f"下载 [{Style.CYAN(rec.uuid)}] 备份清单失败")
+            if err := await self.client.get_file(cache_fp, remote_fp):
+                raise StopRecovery(f"下载 [{Style.CYAN(rec.uuid)}] 备份清单失败") from err
 
             # 遍历备份清单
             for i in json.loads(cache_fp.read_text("utf-8")):
-                upd = BackupUpdate(**i)
+                upd = BackupUpdate.model_validate(i)
                 updates[str(upd.path)] = (rec.uuid, upd)
 
             shutil.rmtree(cache)
@@ -218,16 +221,18 @@ class IncrementStrategy(Strategy):
             mkdir(archive_cache)
             remote = self.remote / uuid
             self.logger.debug(f"下载备份文件分卷清单: [{Style.CYAN(uuid)}]")
-            if not await self.client.get_file(
+            if err := await self.client.get_file(
                 multipart_cache, remote / "multipart.txt"
             ):
-                raise StopRecovery(f"[{Style.CYAN(uuid)}] 备份文件分卷清单下载失败")
+                raise StopRecovery(f"[{Style.CYAN(uuid)}] 备份文件分卷清单下载失败") from err
             archive_name = multipart_cache.read_text().splitlines()
             for name in archive_name:
-                if not await self.client.get_file(archive_cache / name, remote / name):
+                if err := await self.client.get_file(
+                    archive_cache / name, remote / name
+                ):
                     raise StopRecovery(
                         f"[{Style.CYAN(uuid)}] 备份文件 {Style.PATH(name)} 下载失败"
-                    )
+                    ) from err
             password = compress_password(uuid)
             archive_head = archive_cache / archive_name[0]
             self.logger.debug(f"解压备份文件: [{Style.CYAN(uuid)}]")
