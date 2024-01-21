@@ -7,7 +7,7 @@ class _StyleInt(int):
     def __keys(self) -> List[str]:
         keys = []  # type: List[str]
         k = 1
-        style = self
+        style = int(self)
         while style:
             if style & 1:
                 keys.append(_STYLE_MAP[_StyleInt(k)])
