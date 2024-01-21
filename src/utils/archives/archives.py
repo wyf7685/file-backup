@@ -1,7 +1,7 @@
 import os as _os
 from subprocess import Popen, PIPE
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import platform
 
 from ..utils import run_sync
@@ -9,7 +9,7 @@ from ..utils import run_sync
 WINDOWS = platform.system() == "Windows"
 
 
-def _init_7zip() -> str:
+def _init_7zip() -> str:  # sourcery skip: extract-method
     if WINDOWS:
         from base64 import b64decode
         from .raw_7z import EXE_RAW, DLL_RAW
@@ -31,16 +31,17 @@ def _init_7zip() -> str:
     return str(exe_path)
 
 
-def _execute_7z(args: List[str]):
+def _execute_7z(args: List[str]) -> Tuple[bool, str]:
+    args.insert(0, EXE_PATH)
     p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     output, err = p.communicate()
     return "Everything is Ok" in (
-        output.decode("gbk") if WINDOWS else output.decode()
-    ) and p.returncode == 0, (err.decode("gbk") if WINDOWS else err.decode())
+        output.decode("gbk" if WINDOWS else "utf-8")
+    ) and p.returncode == 0, (err.decode("gbk" if WINDOWS else "utf-8"))
 
 
 def _pack_7zip(archive: Path, root: Path, password: Optional[str] = None) -> Path:
-    args = [EXE_PATH, "a", "-t7z", "-r", str(archive), f"{root}/*"]
+    args = ["a", "-t7z", "-r", str(archive), f"{root}/*"]
     if password:
         args.insert(4, f"-p{password}")
 
@@ -51,7 +52,7 @@ def _pack_7zip(archive: Path, root: Path, password: Optional[str] = None) -> Pat
 
 
 def _unpack_7zip(archive: Path, target: Path, password: Optional[str] = None) -> Path:
-    args = [EXE_PATH, "x", str(archive), f"-o{target}"]
+    args = ["x", str(archive), f"-o{target}"]
     if password:
         args.insert(2, f"-p{password}")
 
@@ -74,7 +75,7 @@ def unpack_7zip(archive: Path, target: Path, password: Optional[str] = None) -> 
 def _pack_7zip_multipart(
     archive: Path, root: Path, volume_size: int, password: Optional[str] = None
 ) -> List[Path]:
-    args = [EXE_PATH, "a", "-t7z", "-r", f"-v{volume_size}m", str(archive), f"{root}/*"]
+    args = ["a", "-t7z", "-r", f"-v{volume_size}m", str(archive), f"{root}/*"]
     if password:
         args.insert(5, f"-p{password}")
 

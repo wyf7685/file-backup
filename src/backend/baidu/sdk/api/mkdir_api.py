@@ -31,7 +31,7 @@ async def mkdir(path: Path):
     logger = get_logger("mkdir").opt(colors=True)
     logger.debug(f"创建目录: {Style.PATH_DEBUG(path)}")
     try:
-        resp = await create(str(PATH_ROOT / path).replace("\\", "/"))
+        resp = await create((PATH_ROOT / path).as_posix())
     except ApiException as err:
         raise BaiduMakeDirectoryError(
             f"创建目录 {Style.PATH(path)} 时遇到错误:\n{Style.RED(err)}"

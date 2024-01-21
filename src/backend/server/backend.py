@@ -4,7 +4,7 @@ from base64 import b64decode, b64encode
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Self, Tuple, override
+from typing import Any, Dict, List, Literal, Self, Tuple, cast, override
 
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
@@ -14,7 +14,6 @@ from src.const.exceptions import StopOperation
 from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend
-
 # from ..config import ServerConfig
 from .config import Config
 
@@ -63,7 +62,7 @@ class ServerBackend(Backend):
         url = f"{self.config.url}api/{api}"
         for k in data:
             if isinstance(data[k], Path):
-                data[k] = str(data[k]).replace("\\", "/")
+                data[k] = cast(Path, data[k]).as_posix()
 
         salt = str(time.time())
         hash_val = self.config.api_key + salt

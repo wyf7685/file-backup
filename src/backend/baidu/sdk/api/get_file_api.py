@@ -40,7 +40,7 @@ async def get_file(local_fp: Path, remote_fp: Path):
 
     logger.debug(f"获取目录文件清单: {Style.PATH_DEBUG(remote_fp.parent)}")
     try:
-        listall_resp = await listall(str(path.parent).replace("\\", "/"))
+        listall_resp = await listall(path.parent.as_posix())
     except ApiException as err:
         raise BaiduListDirectoryError(
             f"获取网盘 {Style.PATH(remote_fp.parent)} 文件清单时遇到错误:\n{Style.RED(err)}"

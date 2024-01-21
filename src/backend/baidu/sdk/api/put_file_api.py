@@ -119,7 +119,7 @@ async def put_file(local_fp: Path, remote_fp: Path) -> None:
     logger = get_logger("put_file").opt(colors=True)
     file_size, block_data = await process_file(local_fp)
     block_md5 = [md5(i).hexdigest() for i in block_data]
-    path = str(PATH_ROOT / remote_fp).replace("\\", "/")
+    path = (PATH_ROOT / remote_fp).as_posix()
 
     # 预上传
     logger.debug(f"文件预上传: {Style.PATH_DEBUG(local_fp)}")

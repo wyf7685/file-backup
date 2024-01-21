@@ -30,7 +30,7 @@ async def list_dir(path: Path) -> List[Tuple[Literal["d", "f"], str]]:
     logger.debug(f"列出目录: {Style.PATH_DEBUG(path)}")
 
     try:
-        resp = await listall(str(PATH_ROOT / path).replace("\\", "/"))
+        resp = await listall((PATH_ROOT / path).as_posix())
     except ApiException as err:
         raise BaiduListDirectoryError(
             f"列出目录 {Style.PATH(path)} 时遇到错误:\n{Style.RED(err)}"

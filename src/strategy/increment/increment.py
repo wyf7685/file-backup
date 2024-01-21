@@ -87,7 +87,7 @@ class IncrementStrategy(Strategy):
                 if p not in remote:
                     res.append((t, p))
             elif t == "file":
-                if p not in remote or (p in remote and remote[p].md5 != md5_cache[p]):
+                if p not in remote or remote[p].md5 != md5_cache[p]:
                     res.append((t, p))
             if p in remote:
                 del remote[p]

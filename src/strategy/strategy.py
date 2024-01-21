@@ -82,11 +82,10 @@ class Strategy(BaseStrategy):
 
         # 下载备份记录
         if not await self.client.get_file(cache_fp, remote_fp):
-            if miss_ok:
-                self.logger.info("备份记录不存在, 正在创建...")
-                cache_fp.write_text("[]")
-            else:
+            if not miss_ok:
                 raise StopOperation("备份记录下载失败")
+            self.logger.info("备份记录不存在, 正在创建...")
+            cache_fp.write_text("[]")
 
         raw = cache_fp.read_text()
         cache_fp.unlink()
@@ -113,7 +112,7 @@ class Strategy(BaseStrategy):
         self.record.sort(key=lambda x: x.timestamp)
         cache_fp.write_text(
             json.dumps(
-                [json.loads(record.json()) for record in self.record],
+                [json.loads(record.model_dump_json()) for record in self.record],
                 indent=4,
             ),
             encoding="utf-8",
