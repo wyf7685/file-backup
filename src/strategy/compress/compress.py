@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple, override
 
-from src.const.exceptions import StopRecovery
+from src.const.exceptions import StopRecovery, StopBackup
 from src.models import BackupRecord
 from src.utils import Style, compress_password, get_uuid, mkdir, pack_7zip, unpack_7zip
 
@@ -30,7 +30,8 @@ class CompressStrategy(Strategy):
         password = compress_password(uuid)
         archive = await pack_7zip(self.cache(f"{uuid}.7z"), self.local, password)
         self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
-        await self.client.put_file(archive, target / "backup.7z")
+        if err := await self.client.put_file(archive, target / "backup.7z"):
+            raise StopBackup(f"上传备份压缩包时出错: {err}") from err
 
         # 更新备份记录
         await self.add_record(uuid)
@@ -43,8 +44,8 @@ class CompressStrategy(Strategy):
         result = mkdir(cache / "result")
         remote_fp = self.remote / record.uuid / "backup.7z"
 
-        if not await self.client.get_file(cache_fp, remote_fp):
-            raise StopRecovery(f"[{Style.CYAN(record.uuid)}] 备份文件下载失败")
+        if err := await self.client.get_file(cache_fp, remote_fp):
+            raise StopRecovery(f"[{Style.CYAN(record.uuid)}] 备份文件下载失败") from err
         password = compress_password(record.uuid)
         await unpack_7zip(cache_fp, result, password)
         return record.uuid, result
