@@ -60,9 +60,21 @@
 
   控制台输入和处理。
 
-  - `console.py`
+  - `console/`
+  
+    模块作为整体对外导出为 `Console`，开放 `logger`，`register` 等成员。
 
-    定义 `Console` 类，注册并处理控制台命令。
+    - `console.py`
+
+      定义 `register` 函数，对外开放，用于注册控制台命令。
+
+      `start` 函数启动控制台主循环，处理控制台输入。
+    
+    - `utils.py`
+
+      定义 `InputQueue` 类，在单独线程接收控制台输入。
+
+      定义命令解析/格式化工具函数，并对外导出。
 
     <details>
     <summary>命令注册示例</summary>
@@ -72,17 +84,14 @@
 
     from src.console import Console
 
-    @Console.register("foo", alias=["bar"])
+    @Console.register("foo", alias=["bar"], arglen=3)
     async def _(args: List[str]):
-        Console.check_arg_length(args, 3)
+        # 注册命令时 arglen=3 保证调用时args长度为3
+        # arg1, arg2, arg3 = arg
         Console.logger.info(", ".join(args))
     ```
 
     </details>
-
-  - `input_queue.py`
-
-    定义 `InputQueue` ，在独立线程处理控制台输入。
 
   - `console_cmd.py`
 

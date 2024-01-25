@@ -10,22 +10,23 @@ from src.log import set_log_level
 from src.models import BackupRecord, find_backup
 from src.utils import Style, get_uuid
 
-from .console import Console
+from . import console as Console
 
 
 async def backend() -> Backend:
     return await get_backend().create()
 
 
-@Console.register("help", "显示此帮助列表", alias=["?", "h"])
-async def cmd_help(*_) -> None:
+@Console.register("help", "显示此帮助列表", alias=["?", "h"], arglen=0)
+async def cmd_help(_) -> None:
     logger = Console.logger
+    cmd_help = Console.console.get_cmd_help()
 
-    length = max(len(k) + len(v) for k, v in Console._cmd_help.items()) + 16
+    length = max(len(k) + len(v) for k, v in cmd_help.items()) + 16
 
     logger.info((Style.YELLOW | Style.BOLD)("帮助列表".center(length - 4)))
     logger.info("=" * length)
-    for cmd, helps in sorted(Console._cmd_help.items()):
+    for cmd, helps in sorted(cmd_help.items()):
         for help in helps:
             logger.info(f"{Style.GREEN(cmd)} - {help}")
 
@@ -47,8 +48,8 @@ def format_backup_info(backup: BackupConfig) -> List[str]:
     ]
 
 
-@Console.register("list", "列出所有备份项", alias=["ls"])
-async def cmd_list(*_) -> None:
+@Console.register("list", "列出所有备份项", alias=["ls"], arglen=0)
+async def cmd_list(_) -> None:
     logger = Console.logger
     logger.info("备份项列表")
     logger.info("================================")
@@ -58,7 +59,7 @@ async def cmd_list(*_) -> None:
             logger.info(f"    {info}")
 
 
-@Console.register("query", "查询备份记录", alias=["q"])
+@Console.register("query", "查询备份记录", alias=["q"], arglen=[0, 1])
 async def cmd_query(args: List[str]) -> None:
     logger = Console.logger
 
@@ -67,7 +68,7 @@ async def cmd_query(args: List[str]) -> None:
         logger.info(f"{command} - 查询 {Console.styled_arg('<name>')} 的备份记录")
         return
 
-    name = Console.check_arg_length(args, 1).pop(0)
+    [name] = args
     backup = find_backup(name)
     if backup is None:
         raise CommandExit(f"未找到名为 [{Style.CYAN(name)}] 的备份项")
@@ -90,7 +91,7 @@ async def cmd_query(args: List[str]) -> None:
         logger.info(f"    uuid: {Style.CYAN(record.uuid)}")
 
 
-@Console.register("add", "添加备份项")
+@Console.register("add", "添加备份项", arglen=[0, 4])
 async def cmd_add(args: List[str]) -> None:
     logger = Console.logger
 
@@ -101,7 +102,7 @@ async def cmd_add(args: List[str]) -> None:
         logger.info(f"{command} - 添加备份项")
         return
 
-    name, mode, interval, local = Console.check_arg_length(args, 4)
+    name, mode, interval, local = args
 
     if find_backup(name) is not None:
         raise CommandExit(f"{Style.BLUE('备份项')} [{Style.CYAN(name)}] 已存在, 请勿重复创建!")
@@ -138,7 +139,7 @@ async def cmd_add(args: List[str]) -> None:
         logger.info(f"    {info}")
 
 
-@Console.register("remove", "移除备份项")
+@Console.register("remove", "移除备份项", arglen=[0, 1])
 async def cmd_remove(args: List[str]) -> None:
     logger = Console.logger
 
@@ -147,7 +148,7 @@ async def cmd_remove(args: List[str]) -> None:
         logger.info(f"{command} - 移除备份项")
         return
 
-    name = Console.check_arg_length(args, 1).pop(0)
+    [name] = args
     backup = find_backup(name)
 
     if backup is None:
@@ -159,7 +160,7 @@ async def cmd_remove(args: List[str]) -> None:
     logger.success(f"已移除备份项 [{Style.CYAN(name)}]")
 
 
-@Console.register("log-level", "修改日志等级")
+@Console.register("log-level", "修改日志等级", arglen=[0, 1])
 async def cmd_log_level(args: List[str]) -> None:
     logger = Console.logger
 
@@ -168,7 +169,7 @@ async def cmd_log_level(args: List[str]) -> None:
         logger.info(f"{command} - 临时修改日志等级为 {Console.styled_arg('<level>')}")
         return
 
-    level = Console.check_arg_length(args, 1).pop(0).upper()
+    level = args.pop(0).upper()
     try:
         set_log_level(level)
     except Exception as e:
