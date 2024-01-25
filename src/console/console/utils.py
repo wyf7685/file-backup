@@ -60,7 +60,9 @@ def parse_cmd(cmd: str) -> List[str]:
 def check_arg_length(args: List[str], length: int, *lengths: int) -> List[str]:
     arr = [length, *lengths]
     if len(args) not in arr:
-        raise CommandExit(f"应输入 {'/'.join(str(i) for i in arr)} 个参数")
+        expect = Style.YELLOW("/".join(str(i) for i in arr))
+        got = Style.YELLOW(len(args))
+        raise CommandExit(f"应输入 {expect} 个参数, 得到了 {got} 个")
     return args
 
 
@@ -69,13 +71,6 @@ def styled_arg(arg: str) -> str:
 
 
 def styled_command(cmd: str, *args: str) -> str:
-    # res = [Style.GREEN(cmd)]
-    # for arg in args:
-    #     if " " in arg:
-    #         arg = f'"{arg}"'
-    #     res.append(styled_arg(arg))
-    # return " ".join(res)
-
     return " ".join(
         [
             Style.GREEN(cmd),

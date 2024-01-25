@@ -1,12 +1,22 @@
 import asyncio
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    TypedDict,
+)
 
 from src.const.exceptions import CommandExit, StopOperation
 from src.log import get_logger
+from src.utils import Style
 
-from .input_queue import InputQueue
-from .utils import parse_cmd, styled_command
+from .utils import parse_cmd, styled_command, InputQueue, check_arg_length
 
 if TYPE_CHECKING:
     from src.log import Logger
@@ -14,9 +24,16 @@ if TYPE_CHECKING:
 type CommandCallback = Callable[[List[str]], Awaitable[Any]]
 ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 
+
+class CommandInfo(TypedDict):
+    name: str
+    callback: CommandCallback
+    help: Optional[str]
+    arglen: List[int]
+
+
 __queue: InputQueue = InputQueue()
-__callback: Dict[str, List[CommandCallback]] = defaultdict(list)
-__cmd_help: Dict[str, List[str]] = defaultdict(list)
+__cmd_info: Dict[str, List[CommandInfo]] = defaultdict(list)
 logger: "Logger" = get_logger("Console").opt(colors=True)
 
 
@@ -35,7 +52,7 @@ async def __run():
         if key in ConsoleExitKey:
             key = "stop"
 
-        if key in __callback:
+        if key in __cmd_info:
             await __run_command(key, args)
         elif key not in ConsoleExitKey:
             logger.warning(f"未知命令: {styled_command(key, *args)}")
@@ -51,18 +68,20 @@ async def start():
 
 async def __run_command(key: str, args: List[str]) -> None:
     @logger.catch
-    async def call(func: CommandCallback):
+    async def call(info: CommandInfo):
         try:
-            await func(args)
+            if info["arglen"]:
+                check_arg_length(args, *info["arglen"])
+            await info["callback"](args)
         except CommandExit as e:
             logger.error(f"执行命令 {styled_command(key, *args)} 时发生错误")
-            logger.error(e)
+            logger.error(Style.RED(e, False))
         except StopOperation as e:
-            logger.error(e)
+            logger.error(Style.RED(e, False))
         except Exception as e:
             logger.exception(f"命令 {styled_command(key, *args)} 异常退出: {e}")
 
-    await asyncio.gather(*[call(func) for func in __callback[key]])
+    await asyncio.gather(*[call(info) for info in __cmd_info[key]])
 
 
 def register(
@@ -70,15 +89,23 @@ def register(
     help: Optional[str] = None,
     *,
     alias: Optional[List[str]] = None,
+    arglen: Optional[List[int] | int] = None,
 ):
     alias = alias or []
+    if isinstance(arglen, int):
+        arglen = [arglen]
+    arglen = arglen or []
 
     def decorator(func: CommandCallback):
-        for k in [key, *alias]:
-            __callback[k].append(func)
+        info: CommandInfo = {
+            "name": key,
+            "callback": func,
+            "help": help,
+            "arglen": arglen,
+        }
 
-        if help is not None:
-            __cmd_help[key].append(help)
+        for k in [key, *alias]:
+            __cmd_info[k].append(info)
 
         return func
 
@@ -86,4 +113,7 @@ def register(
 
 
 def get_cmd_help() -> Dict[str, List[str]]:
-    return __cmd_help
+    return {
+        key: [v["help"] for v in value if v["help"] and v["name"] == key]
+        for key, value in __cmd_info.items()
+    }
