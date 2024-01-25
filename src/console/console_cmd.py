@@ -10,7 +10,7 @@ from src.log import set_log_level
 from src.models import BackupRecord, find_backup
 from src.utils import Style, get_uuid
 
-from .console import Console
+from . import console as Console
 
 
 async def backend() -> Backend:
@@ -20,12 +20,13 @@ async def backend() -> Backend:
 @Console.register("help", "显示此帮助列表", alias=["?", "h"])
 async def cmd_help(*_) -> None:
     logger = Console.logger
+    cmd_help = Console.console.get_cmd_help()
 
-    length = max(len(k) + len(v) for k, v in Console._cmd_help.items()) + 16
+    length = max(len(k) + len(v) for k, v in cmd_help.items()) + 16
 
     logger.info((Style.YELLOW | Style.BOLD)("帮助列表".center(length - 4)))
     logger.info("=" * length)
-    for cmd, helps in sorted(Console._cmd_help.items()):
+    for cmd, helps in sorted(cmd_help.items()):
         for help in helps:
             logger.info(f"{Style.GREEN(cmd)} - {help}")
 
