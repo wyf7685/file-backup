@@ -8,7 +8,7 @@ from src.utils import Style
 
 class Backup(object):
     @classmethod
-    async def create(cls, config: BackupConfig, silent: bool = False) -> "Backup":
+    async def create(cls, config: BackupConfig, *, silent: bool = False) -> "Backup":
         strategy = get_strategy(config.mode)
         MixedBackup = type("MixedBackup", (cls, strategy), {})
         self = await MixedBackup.init(config)

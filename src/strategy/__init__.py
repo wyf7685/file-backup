@@ -3,7 +3,7 @@ import typing as _t
 from src.const import BackupMode
 
 from .protocol import StrategyProtocol as StrategyProtocol
-from .strategy import Strategy
+from .strategy import AbstractStrategy as Strategy
 
 
 def get_strategy(mode: BackupMode) -> _t.Type[Strategy]:

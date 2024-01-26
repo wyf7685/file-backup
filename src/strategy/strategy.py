@@ -1,10 +1,9 @@
 import contextlib
-import json
 import shutil
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, override
+from typing import TYPE_CHECKING, List, Optional, Self, Type, override
 
 from src.backend import Backend, get_backend
 from src.config import BackupConfig
@@ -12,22 +11,21 @@ from src.const import PATH
 from src.const.exceptions import RestartBackup, StopBackup, StopOperation
 from src.log import get_logger
 from src.models import BackupRecord
-from src.utils import Style, get_uuid, mkdir, run_sync
+from src.utils import Style, get_uuid, json, mkdir, run_sync
 
 if TYPE_CHECKING:
     from src.log import Logger
 
 
-class BaseStrategy(metaclass=ABCMeta):
+class AbstractStrategy(metaclass=ABCMeta):
     logger: "Logger"
     config: BackupConfig
-    _backend: Type[Backend]
     _cache: Path
     client: Backend
     record: List[BackupRecord]
 
-    @abstractmethod
-    async def _on_init(self):
+    @classmethod
+    async def init(cls, config: BackupConfig) -> Self:
         ...
 
     @abstractmethod
@@ -35,7 +33,7 @@ class BaseStrategy(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    async def _make_recovery(self, record: BackupRecord) -> Tuple[str, Path]:
+    async def _make_recovery(self, record: BackupRecord) -> Path:
         ...
 
     @abstractmethod
@@ -47,18 +45,15 @@ class BaseStrategy(metaclass=ABCMeta):
         ...
 
 
-class Strategy(BaseStrategy):
-    def __init__(self, config: BackupConfig):
+class Strategy(AbstractStrategy):
+    @classmethod
+    async def init(cls, config: BackupConfig) -> Self:
+        self = cls.__new__(cls)
         self.config = config
-        self._backend = get_backend()
+        self.client = await get_backend().create()
         self._cache = PATH.CACHE / get_uuid().split("-")[0]
         name = self.config.name
         self.logger = get_logger(name).opt(colors=True)
-
-    @classmethod
-    async def init(cls, config: BackupConfig):
-        self = cls(config)
-        await self._on_init()
         return self
 
     @property
@@ -76,7 +71,7 @@ class Strategy(BaseStrategy):
     def cache(self, uuid: str) -> Path:
         return mkdir(self.CACHE / uuid)
 
-    async def load_record(self, /, miss_ok: bool = False) -> None:
+    async def load_record(self, *, miss_ok: bool = False) -> None:
         remote_fp = self.remote / "backup.json"
         cache_fp = self.CACHE / "backup.json"
 
@@ -97,11 +92,11 @@ class Strategy(BaseStrategy):
         Args:
             uuid (str): 本次备份的uuid
         """
-        now = datetime.now()
         remote_fp = self.remote / "backup.json"
         cache_fp = self.CACHE / "backup.json"
 
         # 添加本次备份uuid
+        now = datetime.now()
         self.record.append(
             BackupRecord(
                 uuid=uuid,
@@ -111,10 +106,7 @@ class Strategy(BaseStrategy):
         )
         self.record.sort(key=lambda x: x.timestamp)
         cache_fp.write_text(
-            json.dumps(
-                [json.loads(record.model_dump_json()) for record in self.record],
-                indent=4,
-            ),
+            json.dumps([record.model_dump() for record in self.record]),
             encoding="utf-8",
         )
 
@@ -135,9 +127,8 @@ class Strategy(BaseStrategy):
         if [i for i in self.record if i.uuid == uuid]:
             raise RestartBackup("uuid重复")
 
-    async def prepare(self, miss_ok: bool = False) -> None:
-        self.client = await self._backend.create()
-        await self.client.mkdir(str(self.remote))
+    async def prepare(self, *, miss_ok: bool = False) -> None:
+        await self.client.mkdir(self.remote)
         await self.load_record(miss_ok=miss_ok)
 
     def get_record(self, uuid: str) -> Optional[BackupRecord]:
@@ -153,36 +144,31 @@ class Strategy(BaseStrategy):
             del self.client
         shutil.rmtree(self.CACHE, True)
 
-    async def _finish_recovery(self, uuid: str, result: Path) -> None:
+    async def _finish_recovery(self, result: Path) -> None:
         self.logger.info("备份下载完成，正在替换当前文件...")
-        self.logger.debug(
-            f"移动文件夹: {Style.PATH_DEBUG(result)} -> {Style.PATH_DEBUG(self.local)}"
-        )
+        src, dst = Style.PATH_DEBUG(result), Style.PATH_DEBUG(self.local)
+        self.logger.debug(f"移动文件夹: {src} -> {dst}")
         await run_sync(shutil.rmtree)(self.local)
         mkdir(self.local.parent)
         await run_sync(shutil.move)(result, self.local)
-        self.logger.success(f"备份 [{Style.CYAN(uuid)}] 恢复完成!")
 
     @override
     async def make_backup(self) -> None:
         await self.prepare(miss_ok=True)
         try:
             await self._make_backup()
-        except StopOperation as err:
-            if err.uuid:
-                await self.cleanup(err.uuid)
-            raise err
         except Exception as err:
-            await self.cleanup()
+            uuid = err.uuid if isinstance(err, StopOperation) else None
+            await self.cleanup(uuid)
             raise err
 
     @override
     async def make_recovery(self, record: BackupRecord) -> None:
         await self.prepare()
-        uuid, result = None, None
+        result = None
         try:
-            uuid, result = await self._make_recovery(record)
+            result = await self._make_recovery(record)
         finally:
-            if uuid and result:
-                await self._finish_recovery(uuid, result)
+            if result:
+                await self._finish_recovery(result)
             await self.cleanup()

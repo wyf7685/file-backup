@@ -12,7 +12,7 @@ class ConfigModel(BaseModel):
         extra = "allow"
 
     def save(self) -> Self:
-        data = self.model_dump_json(indent=4)
+        data = self.model_dump_json(indent=2)
         PATH.CONFIG.write_text(
             data=data,
             encoding="utf-8",

@@ -1,3 +1,4 @@
+from . import json_path as json
 from .ansi_html import AnsiToHtml as AnsiToHtml
 from .archives import *
 from .log_style import Style as Style

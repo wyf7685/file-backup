@@ -1,5 +1,4 @@
 import asyncio
-import json
 import shutil
 from pathlib import Path
 from typing import Dict, List, Tuple, override
@@ -12,6 +11,7 @@ from src.utils import (
     compress_password,
     get_md5,
     get_uuid,
+    json,
     mkdir,
     pack_7zip_multipart,
     run_sync,
@@ -22,10 +22,6 @@ from ..strategy import Strategy
 
 
 class IncrementStrategy(Strategy):
-    @override
-    async def _on_init(self) -> None:
-        pass
-
     def get_local_list(self) -> List[Tuple[BackupUpdateType, Path]]:
         """获取本地文件列表
 
@@ -35,8 +31,9 @@ class IncrementStrategy(Strategy):
         res = []  # type: List[Tuple[BackupUpdateType, Path]]
 
         for p, dirs, files in self.local.walk():
-            res.extend(("dir", (p / i).relative_to(self.local)) for i in dirs)
-            res.extend(("file", (p / i).relative_to(self.local)) for i in files)
+            relp = p.relative_to(self.local)
+            res.extend(("dir", relp / i) for i in dirs)
+            res.extend(("file", relp / i) for i in files)
 
         return sorted(res)
 
@@ -50,32 +47,28 @@ class IncrementStrategy(Strategy):
 
     async def get_update_list(self) -> List[BackupUpdate]:
         remote = {}  # type: Dict[Path, BackupUpdate]
-        local_list = self.get_local_list()
 
         # 按序遍历历史备份
-        for uuid in [i.uuid for i in self.record]:
-            self.logger.debug(
-                f"下载 {Style.CYAN(self.config.name)} [{Style.CYAN(uuid)}] 的备份清单"
-            )
-            cache_fp = self.CACHE / f"{uuid}.json"
-            remote_fp = self.remote / uuid / "update.json"
+        for rec in self.record:
+            name = f"{Style.CYAN(self.config.name)} [{Style.CYAN(rec.uuid)}]"
+            self.logger.debug(f"下载 {name} 的备份清单")
+            cache_fp = self.CACHE / f"{rec.uuid}.json"
+            remote_fp = self.remote / rec.uuid / "update.json"
 
             # 下载备份修改记录
             if err := await self.client.get_file(cache_fp, remote_fp):
                 raise StopBackup(f"下载备份清单 {remote_fp} 失败") from err
 
-            # 将修改记录转换为对象
-            remote_upd = [
-                BackupUpdate.model_validate(i)
-                for i in json.loads(cache_fp.read_text("utf-8"))
-            ]
-
             # 读取备份修改记录
-            for upd in remote_upd:
+            for i in json.loads(cache_fp.read_text("utf-8")):
+                upd = BackupUpdate.model_validate(i)
                 if upd.md5 != "":
                     remote[upd.path] = upd
                 elif upd.path in remote and remote[upd.path].type == "del":
                     del remote[upd.path]
+
+        # 获取本地文件列表
+        local_list = self.get_local_list()
 
         # 计算文件md5值
         md5_cache = await self.get_local_md5([p for t, p in local_list if t == "file"])
@@ -93,7 +86,14 @@ class IncrementStrategy(Strategy):
                 del remote[p]
 
         res.extend(("del", v.path) for v in remote.values())
-        return [BackupUpdate(type=t, path=p, md5=md5_cache[p]) for t, p in res]
+        return [
+            BackupUpdate(
+                type=t,
+                path=p,
+                md5=md5_cache.get(p, None),
+            )
+            for t, p in res
+        ]
 
     def cache_update(self, update: List[BackupUpdate]) -> Path:
         cache = self.cache(get_uuid())
@@ -107,8 +107,9 @@ class IncrementStrategy(Strategy):
 
         return cache
 
-    async def compress_and_upload(self, uuid: str, cache: Path, target: Path):
+    async def compress_and_upload(self, uuid: str, cache: Path):
         target = self.remote / uuid
+        await self.client.mkdir(target)
         password = compress_password(uuid)
         archive_dir = self.cache("archive")
 
@@ -153,7 +154,6 @@ class IncrementStrategy(Strategy):
 
         # 准备备份
         target = self.remote / uuid
-        await self.client.mkdir(target)
         self.logger.info(f"开始增量备份: {Style.PATH(self.local)}")
         self.logger.info(f"备份uuid: [{Style.CYAN(uuid)}]")
 
@@ -161,14 +161,12 @@ class IncrementStrategy(Strategy):
         cache = self.cache_update(update)
 
         # 压缩文件并上传
-        await self.compress_and_upload(uuid, cache, target)
+        await self.compress_and_upload(uuid, cache)
 
         # 生成本次备份清单
         upd_file_cnt = len([upd for upd in update if upd.type == "file"])
         upd_cache = cache / "update.json"
-        upd_cache.write_text(
-            json.dumps([json.loads(upd.model_dump_json()) for upd in update])
-        )
+        upd_cache.write_text(json.dumps([upd.model_dump() for upd in update]))
         if err := await self.client.put_file(upd_cache, target / "update.json"):
             raise StopBackup(f"上传备份清单时出现错误: {err}") from err
 
@@ -179,11 +177,12 @@ class IncrementStrategy(Strategy):
 
     async def get_updates(
         self, records: List[BackupRecord]
-    ) -> Dict[str, Tuple[str, BackupUpdate]]:
-        updates = {}
+    ) -> Dict[Path, Tuple[str, BackupUpdate]]:
+        updates = {}  # type: Dict[Path, Tuple[str, BackupUpdate]]
+        cache_prefix = f"{id(updates)}-"
         for rec in records:
             self.logger.debug(f"加载备份 [{Style.CYAN(rec.uuid)}]")
-            cache = self.cache(f"{id(updates)}-{rec.uuid}")
+            cache = self.cache(cache_prefix + rec.uuid)
 
             # 下载备份清单
             cache_fp = cache / f"{rec.uuid}.json"
@@ -194,20 +193,20 @@ class IncrementStrategy(Strategy):
             # 遍历备份清单
             for i in json.loads(cache_fp.read_text("utf-8")):
                 upd = BackupUpdate.model_validate(i)
-                updates[str(upd.path)] = (rec.uuid, upd)
+                updates[upd.path] = (rec.uuid, upd)
 
             shutil.rmtree(cache)
             self.logger.debug(f"备份 [{Style.CYAN(rec.uuid)}] 加载完成")
 
         # 移除类型为del(删除)的记录
-        for key, (_, upd) in list(updates.items()):
-            if upd.type == "del":
-                del updates[key]
-
-        return updates
+        return {
+            key: (uuid, upd)
+            for key, (uuid, upd) in updates.items()
+            if upd.type != "del"
+        }
 
     @override
-    async def _make_recovery(self, record: BackupRecord) -> Tuple[str, Path]:
+    async def _make_recovery(self, record: BackupRecord) -> Path:
         records = [rec for rec in self.record if rec.timestamp <= record.timestamp]
         cache = self.cache(record.uuid)
 
@@ -254,4 +253,4 @@ class IncrementStrategy(Strategy):
                 case "dir":
                     mkdir(dst)
 
-        return record.uuid, result
+        return result

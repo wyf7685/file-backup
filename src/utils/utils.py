@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 from contextvars import copy_context
 from functools import partial, wraps
@@ -7,7 +8,7 @@ from typing import Callable, Coroutine
 from uuid import uuid4
 
 
-def get_md5(path: Path):
+def get_md5(path: Path) -> str:
     if not path.is_file():
         raise ValueError("path must be a file")
     return md5(path.read_bytes()).hexdigest()
@@ -47,7 +48,6 @@ def run_sync[**P, R](call: Callable[P, R]) -> Callable[P, Coroutine[None, None, 
     参数:
         call: 被装饰的同步函数
     """
-    import asyncio
 
     @wraps(call)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:

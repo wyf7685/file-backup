@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, override
+from typing import override
 
 from src.const.exceptions import StopRecovery, StopBackup
 from src.models import BackupRecord
@@ -9,10 +9,6 @@ from ..strategy import Strategy
 
 
 class CompressStrategy(Strategy):
-    @override
-    async def _on_init(self) -> None:
-        pass
-
     @override
     async def _make_backup(self) -> None:
         await self.prepare()
@@ -38,7 +34,7 @@ class CompressStrategy(Strategy):
         self.logger.success(f"[{Style.CYAN(uuid)}] 备份完成!")
 
     @override
-    async def _make_recovery(self, record: BackupRecord) -> Tuple[str, Path]:
+    async def _make_recovery(self, record: BackupRecord) -> Path:
         cache = self.cache(record.uuid)
         cache_fp = cache / "backup.7z"
         result = mkdir(cache / "result")
@@ -48,4 +44,4 @@ class CompressStrategy(Strategy):
             raise StopRecovery(f"[{Style.CYAN(record.uuid)}] 备份文件下载失败") from err
         password = compress_password(record.uuid)
         await unpack_7zip(cache_fp, result, password)
-        return record.uuid, result
+        return result
