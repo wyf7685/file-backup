@@ -1,6 +1,16 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Literal, Optional, Self, Set, Tuple, Type, override
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Literal,
+    Optional,
+    Self,
+    Set,
+    Tuple,
+    Type,
+    override,
+)
 
 from src.const import StrPath
 from src.const.exceptions import BackendError
@@ -19,15 +29,12 @@ def _color(path: StrPath) -> str:
     return Style.PATH_DEBUG(path)
 
 
-class BaseBackend(metaclass=ABCMeta):
+class AbstractBackend(metaclass=ABCMeta):
     logger: "Logger"
 
+    @abstractmethod
     def __init__(self):
-        self.logger = get_logger(self.__class__.__name__).opt(colors=True)
-
-    @staticmethod
-    def parse_config[T](config_cls: Type[T]) -> T:
-        return parse_config(config_cls)
+        ...
 
     @classmethod
     @abstractmethod
@@ -73,12 +80,17 @@ class BaseBackend(metaclass=ABCMeta):
         ...
 
 
-class Backend(BaseBackend):
+class Backend(AbstractBackend):
     __mkdir_cache: Set[Path]
 
+    @override
     def __init__(self):
-        super().__init__()
+        self.logger = get_logger(self.__class__.__name__).opt(colors=True)
         self.__mkdir_cache = set()
+
+    @staticmethod
+    def _parse_config[T](config_cls: Type[T]) -> T:
+        return parse_config(config_cls)
 
     @abstractmethod
     async def _mkdir(self, path: StrPath) -> None:

@@ -22,6 +22,12 @@ def build(name: str):
         "--hidden-import src.backend.local",
         "--hidden-import src.backend.server",
         "--hidden-import src.backend.baidu",
+        "--hidden-import src.strategy.compress",
+        "--hidden-import src.strategy.increment",
+        "--hidden-import src.backend.backend_cmd",
+        "--hidden-import src.backup.backup_cmd",
+        "--hidden-import src.console.console_cmd",
+        "--hidden-import src.recover.recover_cmd",
         "--noupx",
         "main.py",
     ]

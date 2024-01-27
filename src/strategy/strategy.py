@@ -44,6 +44,14 @@ class AbstractStrategy(metaclass=ABCMeta):
     async def make_recovery(self, record: BackupRecord) -> None:
         ...
 
+    @abstractmethod
+    async def prepare(self, *, miss_ok: bool = False) -> None:
+        ...
+
+    @abstractmethod
+    def get_record(self, uuid: str) -> Optional[BackupRecord]:
+        ...
+
 
 class Strategy(AbstractStrategy):
     @classmethod

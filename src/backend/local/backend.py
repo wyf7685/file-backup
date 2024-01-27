@@ -17,8 +17,7 @@ class LocalBackend(Backend):
     @override
     async def create(cls) -> Self:
         self = cls()
-        self.root = cls.parse_config(Config).storage
-        mkdir(self.root)
+        self.root = mkdir(self._parse_config(Config).storage)
         return self
 
     @override

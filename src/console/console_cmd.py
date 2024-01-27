@@ -19,14 +19,14 @@ async def backend() -> Backend:
 
 @Console.register("help", "显示此帮助列表", alias=["?", "h"], arglen=0)
 async def cmd_help(_) -> None:
-    logger = Console.logger
-    cmd_help = Console.console.get_cmd_help()
+    logger = cmd_help.logger
+    helps = Console.console.get_cmd_help()
 
-    length = max(len(k) + len(v) for k, v in cmd_help.items()) + 16
+    length = max(len(k) + len(v) for k, v in helps.items()) + 16
 
     logger.info((Style.YELLOW | Style.BOLD)("帮助列表".center(length - 4)))
     logger.info("=" * length)
-    for cmd, helps in sorted(cmd_help.items()):
+    for cmd, helps in sorted(helps.items()):
         for help in helps:
             logger.info(f"{Style.GREEN(cmd)} - {help}")
 
@@ -50,7 +50,7 @@ def format_backup_info(backup: BackupConfig) -> List[str]:
 
 @Console.register("list", "列出所有备份项", alias=["ls"], arglen=0)
 async def cmd_list(_) -> None:
-    logger = Console.logger
+    logger = cmd_list.logger
     logger.info("备份项列表")
     logger.info("================================")
     for i, backup in enumerate(config.backup_list):
@@ -61,7 +61,7 @@ async def cmd_list(_) -> None:
 
 @Console.register("query", "查询备份记录", alias=["q"], arglen=[0, 1])
 async def cmd_query(args: List[str]) -> None:
-    logger = Console.logger
+    logger = cmd_query.logger
 
     if not args:
         command = Console.styled_command("query", "<name>")
@@ -93,7 +93,7 @@ async def cmd_query(args: List[str]) -> None:
 
 @Console.register("add", "添加备份项", arglen=[0, 4])
 async def cmd_add(args: List[str]) -> None:
-    logger = Console.logger
+    logger = cmd_add.logger
 
     if not args:
         command = Console.styled_command(
@@ -117,10 +117,10 @@ async def cmd_add(args: List[str]) -> None:
         interval = int(interval)
     except ValueError as e:
         raise CommandExit(
-            f"{Style.BLUE('备份间隔')} 必须是整形, 不能是 {Style.YELLOW(interval)}"
+            f"{Style.BLUE('备份间隔')} 必须是整型, 不能是 {Style.YELLOW(interval)}"
         ) from e
 
-    local_path = Path(local)
+    local_path = Path(local).absolute()
     if not local_path.exists():
         raise CommandExit(f"{Style.BLUE('备份路径')} {Style.PATH(local)} 不存在")
 
@@ -141,7 +141,7 @@ async def cmd_add(args: List[str]) -> None:
 
 @Console.register("remove", "移除备份项", arglen=[0, 1])
 async def cmd_remove(args: List[str]) -> None:
-    logger = Console.logger
+    logger = cmd_remove.logger
 
     if not args:
         command = Console.styled_command("remove", "<name>")
@@ -162,7 +162,7 @@ async def cmd_remove(args: List[str]) -> None:
 
 @Console.register("log-level", "修改日志等级", arglen=[0, 1])
 async def cmd_log_level(args: List[str]) -> None:
-    logger = Console.logger
+    logger = cmd_log_level.logger
 
     if not args:
         command = Console.styled_command("log-level", "<level>")

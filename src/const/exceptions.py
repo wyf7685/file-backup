@@ -3,6 +3,7 @@ from typing import Optional
 
 class Error(Exception):
     """`file-backup` 所有错误类型的基类"""
+
     msg: str
 
     def __init__(self, msg: str = "") -> None:
@@ -37,7 +38,11 @@ class StopRecovery(StopOperation):
 
 
 class CommandExit(StopOperation):
-    pass
+    trace: bool
+
+    def __init__(self, msg: str = "", trace: bool = False) -> None:
+        self.msg = msg
+        self.trace = trace
 
 
 class BackendError(Error):

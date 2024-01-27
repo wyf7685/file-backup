@@ -45,7 +45,7 @@ class ServerBackend(Backend):
     @classmethod
     async def create(cls) -> Self:
         self = cls()
-        self.config = cls.parse_config(Config)
+        self.config = self._parse_config(Config)
         self.headers = deepcopy(HEADERS)
         self.headers["X-7685-Token"] = self.config.token
         self.session = ClientSession()

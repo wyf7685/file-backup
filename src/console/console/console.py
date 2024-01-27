@@ -1,22 +1,16 @@
 import asyncio
+import sys
+from contextlib import suppress
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    TypedDict,
-)
+from dataclasses import dataclass
+from importlib import import_module
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Set
 
 from src.const.exceptions import CommandExit, StopOperation
 from src.log import get_logger
 from src.utils import Style
 
-from .utils import parse_cmd, styled_command, InputQueue, check_arg_length
+from .utils import InputQueue, check_arg_length, parse_cmd, styled_command
 
 if TYPE_CHECKING:
     from src.log import Logger
@@ -25,8 +19,10 @@ type CommandCallback = Callable[[List[str]], Awaitable[Any]]
 ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 
 
-class CommandInfo(TypedDict):
+@dataclass
+class CommandInfo(object):
     name: str
+    logger: "Logger"
     callback: CommandCallback
     help: Optional[str]
     arglen: List[int]
@@ -63,6 +59,11 @@ async def __run():
 
 
 async def start():
+    # 搜索并加载控制台命令
+    for name in [i for i in sys.modules if i.startswith("src.")]:
+        with suppress(ImportError):
+            import_module(f"{name}.{name.split(".")[-1]}_cmd")
+
     await __run()
 
 
@@ -70,12 +71,12 @@ async def __run_command(key: str, args: List[str]) -> None:
     @logger.catch
     async def call(info: CommandInfo):
         try:
-            if info["arglen"]:
-                check_arg_length(args, *info["arglen"])
-            await info["callback"](args)
+            if info.arglen:
+                check_arg_length(args, *info.arglen)
+            await info.callback(args)
         except CommandExit as e:
             logger.error(f"执行命令 {styled_command(key, *args)} 时发生错误")
-            logger.error(Style.RED(e, False))
+            logger.opt(exception=e.trace, colors=True).error(Style.RED(e, False))
         except StopOperation as e:
             logger.error(Style.RED(e, False))
         except Exception as e:
@@ -97,23 +98,24 @@ def register(
     arglen = arglen or []
 
     def decorator(func: CommandCallback):
-        info: CommandInfo = {
-            "name": key,
-            "callback": func,
-            "help": help,
-            "arglen": arglen,
-        }
+        info = CommandInfo(
+            name=key,
+            logger=logger.bind(head=key),
+            callback=func,
+            help=help,
+            arglen=arglen,
+        )
 
         for k in [key, *alias]:
             __cmd_info[k].append(info)
 
-        return func
+        return info
 
     return decorator
 
 
 def get_cmd_help() -> Dict[str, List[str]]:
     return {
-        key: [v["help"] for v in value if v["help"] and v["name"] == key]
+        key: [v.help for v in value if v.help and v.name == key]
         for key, value in __cmd_info.items()
     }

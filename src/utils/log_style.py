@@ -1,5 +1,5 @@
 import functools
-from typing import Any, Dict, List, Self, Iterable
+from typing import Any, Dict, List, Self
 
 
 class _StyleInt(int):

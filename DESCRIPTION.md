@@ -85,10 +85,10 @@
     from src.console import Console
 
     @Console.register("foo", alias=["bar"], arglen=3)
-    async def _(args: List[str]):
+    async def cmd_foo(args: List[str]):
         # 注册命令时 arglen=3 保证调用时args长度为3
         # arg1, arg2, arg3 = arg
-        Console.logger.info(", ".join(args))
+        cmd_foo.logger.info(", ".join(args))
     ```
 
     </details>

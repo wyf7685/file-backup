@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from src.const import PATH
 from src.log import get_logger
-from src.utils import Style
+from src.utils import Style, json
 
 
 class ConfigModel(BaseModel):
@@ -12,7 +12,7 @@ class ConfigModel(BaseModel):
         extra = "allow"
 
     def save(self) -> Self:
-        data = self.model_dump_json(indent=2)
+        data = json.dumps(self.model_dump(), indent=2, ensure_ascii=False)
         PATH.CONFIG.write_text(
             data=data,
             encoding="utf-8",

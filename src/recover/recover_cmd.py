@@ -12,7 +12,7 @@ from .recover import Recover
 async def cmd_recover(args: List[str]) -> None:
     if not args:
         command = Console.styled_command("recover", "<name>", "<uuid>")
-        Console.logger.info(f"{command} - 恢复到备份项的备份记录")
+        cmd_recover.logger.info(f"{command} - 恢复到备份项的备份记录")
         return
 
     name, uuid = args
@@ -21,7 +21,7 @@ async def cmd_recover(args: List[str]) -> None:
         raise CommandExit(f"未找到名为 [{Style.CYAN(name)}] 的备份项")
 
     recover = await Recover.create(config)
-    if (record := recover.get_record(uuid)) is None:
-        raise CommandExit(f"未找到 uuid 为 [{Style.CYAN(uuid)}] 的备份")
+    if record := recover.get_record(uuid):
+        await recover.apply(record)
 
-    await recover.apply(record)
+    raise CommandExit(f"未找到 uuid 为 [{Style.CYAN(uuid)}] 的备份")

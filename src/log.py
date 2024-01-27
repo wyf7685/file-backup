@@ -63,25 +63,23 @@ class Filter:
 
 class Format:
     __debug_level_no: int = logger.level("DEBUG").no
-
-    fmt: str = (
-        "<g>{time:MM-DD HH:mm:ss}</g> "
-        "[<lvl>{level}</lvl>] "
-        "<c><u>{name}</u></c> | "
-        "{message}\n{exception}"
-    )
-    fmt_debug: str = (
-        "<g>{time:MM-DD HH:mm:ss}</g> "
-        "[<lvl>{level}</lvl>] "
-        "<c><u>{name}</u></c> | "
-        "<c>{file}</c>:<c>{line}</c> | "
-        "{message}\n{exception}"
-    )
+    fmt_arr = [
+        "<g>{time:MM-DD HH:mm:ss}</g> [<lvl>{level}</lvl>] <c><u>{name}</u></c> |",
+        "<c>{file}</c>:<c>{line}</c> |",
+        "{message}\n{exception}",
+    ]
 
     def __call__(self, record: "Record") -> str:
-        return (
-            self.fmt_debug if record["level"].no <= self.__debug_level_no else self.fmt
-        )
+        fmt = self.fmt_arr.copy()
+
+        if head := record["extra"].get("head"):
+            fmt.insert(2, f"<m>{head}</m> |")
+
+        if record["level"].no > self.__debug_level_no:
+            # Not debug, remove file/line information
+            fmt.pop(1)
+
+        return " ".join(fmt)
 
 
 LOGGING_CONFIG = {
@@ -127,8 +125,11 @@ def init_logger_sink() -> tuple[int, int]:
     )
 
 
-def get_logger(name: Optional[str] = None) -> "Logger":
-    return logger.bind(name=name) if name else logger
+def get_logger(
+    name: Optional[str] = None,
+    head: Optional[str] = None,
+) -> "Logger":
+    return logger.bind(name=name).bind(head=head)
 
 
 def set_log_level(level: Union[int, str]) -> int:

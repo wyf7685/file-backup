@@ -12,7 +12,7 @@ from .backup_host import BackupHost
 async def cmd_backup(args: List[str]) -> None:
     if not args:
         command = Console.styled_command("backup", "<name>")
-        Console.logger.info(f"{command} - 执行备份")
+        cmd_backup.logger.info(f"{command} - 执行备份")
         return
 
     [name] = args
@@ -29,7 +29,7 @@ async def cmd_stop_host(_) -> None:
     await BackupHost.stop()
 
 
-@Console.register("reload", alias=["r"],arglen=0)
+@Console.register("reload", alias=["r"], arglen=0)
 async def cmd_reload_host(_) -> None:
     await BackupHost.stop()
     await BackupHost.start()
