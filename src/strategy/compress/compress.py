@@ -9,6 +9,8 @@ from ..strategy import Strategy
 
 
 class CompressStrategy(Strategy):
+    __strategy_name__: str = "Compress"
+
     @override
     async def _make_backup(self) -> None:
         await self.prepare()

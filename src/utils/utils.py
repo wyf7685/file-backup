@@ -1,9 +1,12 @@
 import asyncio
 import shutil
+import sys
 from contextvars import copy_context
 from functools import partial, wraps
 from hashlib import md5
 from pathlib import Path
+from sys import exc_info
+from types import FrameType
 from typing import Callable, Coroutine
 from uuid import uuid4
 
@@ -57,3 +60,17 @@ def run_sync[**P, R](call: Callable[P, R]) -> Callable[P, Coroutine[None, None, 
         return await loop.run_in_executor(None, partial(context.run, pfunc))
 
     return wrapper
+
+
+def _get_frame(n) -> FrameType:
+    # sourcery skip: raise-specific-error
+    try:
+        raise Exception
+    except Exception:
+        frame = exc_info()[2].tb_frame.f_back  # type: ignore
+        for _ in range(n):
+            frame = frame.f_back  # type: ignore
+        return frame  # type: ignore
+
+
+get_frame = sys._getframe if hasattr(sys, "_getframe") else _get_frame

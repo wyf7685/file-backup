@@ -21,9 +21,9 @@ async def cmd_backend(args: List[str]):
         backend = get_backend(name)
     except Exception as err:
         raise CommandExit(f"不存在名为 {Style.CYAN(name)} 的 Backend", True) from err
-    
+
     root = global_config.parse_config(Config)
-    root.backend.type = name # type: ignore
+    root.backend.type = config.type = name  # type: ignore
     root.save()
 
     logger.debug(f"Backend: {backend!r}")

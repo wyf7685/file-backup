@@ -1,7 +1,7 @@
 import logging
 import sys
 import loguru
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from loguru import Logger, Record
@@ -32,18 +32,15 @@ class LoguruHandler(logging.Handler):
 
 
 class Filter:
-    level: Union[int, str] = DEFAULT_LOG_LEVEL
+    level: int | str = DEFAULT_LOG_LEVEL
 
-    def update_level(self, level: Optional[Union[int, str]] = None) -> int:
+    def update_level(self, level: int | str | None = None) -> int:
         if level is None:
             level = self.level
         self.level = logger.level(level).no if isinstance(level, str) else level
         return self.level
 
     def __call__(self, record: "Record") -> bool:
-        if log_name := record["extra"].get("name"):
-            record["name"] = log_name
-
         if not isinstance(self.level, int):
             try:
                 self.level = self.update_level()
@@ -64,7 +61,8 @@ class Filter:
 class Format:
     __debug_level_no: int = logger.level("DEBUG").no
     fmt_arr = [
-        "<g>{time:MM-DD HH:mm:ss}</g> [<lvl>{level}</lvl>] <c><u>{name}</u></c> |",
+        "<g>{time:MM-DD HH:mm:ss}</g> [<lvl>{level}</lvl>]",
+        "<c><u>{name}</u></c> |",
         "<c>{file}</c>:<c>{line}</c> |",
         "{message}\n{exception}",
     ]
@@ -72,12 +70,15 @@ class Format:
     def __call__(self, record: "Record") -> str:
         fmt = self.fmt_arr.copy()
 
+        if name := record["extra"].get("name"):
+            fmt[1] = fmt[1].format(name=name)
+
         if head := record["extra"].get("head"):
-            fmt.insert(2, f"<m>{head}</m> |")
+            fmt.insert(3, f"<m>{head}</m> |")
 
         if record["level"].no > self.__debug_level_no:
             # Not debug, remove file/line information
-            fmt.pop(1)
+            fmt.pop(2)
 
         return " ".join(fmt)
 
@@ -87,7 +88,7 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "handlers": {
         "default": {
-            "class": "src.log.LoguruHandler",
+            "class": f"{__name__}.LoguruHandler",
         },
     },
     "loggers": {
@@ -97,9 +98,9 @@ LOGGING_CONFIG = {
     },
 }
 
-default_filter: Filter = Filter()
+default_filter = Filter()
 """默认日志等级过滤器"""
-default_format: Format = Format()
+default_format = Format()
 """默认日志格式"""
 
 
@@ -126,13 +127,13 @@ def init_logger_sink() -> tuple[int, int]:
 
 
 def get_logger(
-    name: Optional[str] = None,
-    head: Optional[str] = None,
+    name: str | None = None,
+    head: str | None = None,
 ) -> "Logger":
-    return logger.bind(name=name).bind(head=head)
+    return logger.bind(name=name, head=head)
 
 
-def set_log_level(level: Union[int, str]) -> int:
+def set_log_level(level: int | str) -> int:
     return default_filter.update_level(level)
 
 

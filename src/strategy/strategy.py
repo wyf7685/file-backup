@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 class AbstractStrategy(metaclass=ABCMeta):
     logger: "Logger"
     config: BackupConfig
-    _cache: Path
     client: Backend
     record: List[BackupRecord]
 
@@ -54,6 +53,9 @@ class AbstractStrategy(metaclass=ABCMeta):
 
 
 class Strategy(AbstractStrategy):
+    __strategy_name__: str = "Strategy"
+    _cache: Path
+
     @classmethod
     async def init(cls, config: BackupConfig) -> Self:
         self = cls.__new__(cls)
@@ -61,7 +63,7 @@ class Strategy(AbstractStrategy):
         self.client = await get_backend().create()
         self._cache = PATH.CACHE / get_uuid().split("-")[0]
         name = self.config.name
-        self.logger = get_logger(name).opt(colors=True)
+        self.logger = get_logger(cls.__strategy_name__, name).opt(colors=True)
         return self
 
     @property

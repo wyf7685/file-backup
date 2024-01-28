@@ -15,7 +15,7 @@ from typing import (
 from src.const import StrPath
 from src.const.exceptions import BackendError
 from src.log import get_logger
-from src.utils import Style
+from src.utils import Style, get_frame
 
 from .config import parse_config
 
@@ -30,7 +30,7 @@ def _color(path: StrPath) -> str:
 
 
 class AbstractBackend(metaclass=ABCMeta):
-    logger: "Logger"
+    _logger: "Logger"
 
     @abstractmethod
     def __init__(self):
@@ -85,8 +85,13 @@ class Backend(AbstractBackend):
 
     @override
     def __init__(self):
-        self.logger = get_logger(self.__class__.__name__).opt(colors=True)
+        self._logger = get_logger(self.__class__.__name__).opt(colors=True)
         self.__mkdir_cache = set()
+
+    @property
+    def logger(self) -> "Logger":
+        frame = get_frame(1)
+        return self._logger.bind(head=frame.f_code.co_name)
 
     @staticmethod
     def _parse_config[T](config_cls: Type[T]) -> T:

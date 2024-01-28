@@ -11,7 +11,7 @@ def build(name: str):
     p = popen("poetry about")
     p.communicate()
     POETRY = p.returncode == 0
-    env_setup_cmd = "poetry install" if POETRY else "pip install -r requirements.txt"
+    env_setup_cmd = "poetry install --no-root" if POETRY else "pip install -r requirements.txt"
     popen(env_setup_cmd).communicate()
 
     args = [
@@ -19,6 +19,7 @@ def build(name: str):
         "--distpath .",
         f"--name {name}",
         "-i src/shell32_172.ico",
+        "--noupx",
         "--hidden-import src.backend.local",
         "--hidden-import src.backend.server",
         "--hidden-import src.backend.baidu",
@@ -28,7 +29,6 @@ def build(name: str):
         "--hidden-import src.backup.backup_cmd",
         "--hidden-import src.console.console_cmd",
         "--hidden-import src.recover.recover_cmd",
-        "--noupx",
         "main.py",
     ]
     if POETRY:

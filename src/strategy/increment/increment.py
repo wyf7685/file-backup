@@ -22,6 +22,8 @@ from ..strategy import Strategy
 
 
 class IncrementStrategy(Strategy):
+    __strategy_name__: str = "Increment"
+
     def get_local_list(self) -> List[Tuple[BackupUpdateType, Path]]:
         """获取本地文件列表
 
