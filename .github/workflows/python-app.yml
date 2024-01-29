@@ -50,7 +50,7 @@ jobs:
         python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
-        python -m poetry run python ./build-exe.py
+        python -m poetry run python ./build-exe.py actions
     - uses: actions/upload-artifact@v4
       with:
         name: file-backup_windows
