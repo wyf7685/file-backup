@@ -4,14 +4,12 @@ version = "0.1.0"
 description = ""
 authors = ["wyf7685 <69091901+wyf7685@users.noreply.github.com>"]
 readme = "README.md"
-packages = [{include = "file_backup"}]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
 pydantic = "^2.4.2"
 loguru = "^0.7.0"
 aiohttp = "^3.8.5"
-pyinstaller = "^6.1.0"
 urllib3 = "^2.0.7"
 python-dateutil = "^2.8.2"
 
@@ -20,6 +18,10 @@ python-dateutil = "^2.8.2"
 name = "tuna"
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 priority = "default"
+
+
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^6.3.0"
 
 [build-system]
 requires = ["poetry-core"]

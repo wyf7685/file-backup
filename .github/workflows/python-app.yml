@@ -1,4 +1,4 @@
-name: Python application
+name: Build binary
 
 on:
   push:
@@ -23,12 +23,10 @@ jobs:
         cache: "poetry"
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install poetry pyinstaller
-        python -m poetry install --no-root
+        python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
-        python -m poetry run pyinstaller -F -c --clean --name file-backup -i src/shell32_172.ico --hidden-import src.backend.local --hidden-import src.backend.server --hidden-import src.backend.baidu --noupx main.py
+        python -m poetry run python ./build-exe.py
     - uses: actions/upload-artifact@v4
       with:
         name: file-backup_ubuntu
@@ -47,12 +45,10 @@ jobs:
         cache: "poetry"
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install poetry pyinstaller
-        python -m poetry install --no-root
+        python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
-        python -m poetry run pyinstaller -F -c --clean --name file-backup -i src/shell32_172.ico --hidden-import src.backend.local --hidden-import src.backend.server --hidden-import src.backend.baidu --noupx main.py
+        python -m poetry run python ./build-exe.py
     - uses: actions/upload-artifact@v4
       with:
         name: file-backup_windows
