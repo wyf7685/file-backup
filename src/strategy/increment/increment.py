@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, override
 
 from src.const import BackupUpdateType
 from src.const.exceptions import StopBackup, StopRecovery
-from src.models import BackupRecord, BackupUpdate, Path
+from src.models import BackupRecord, BackupUpdate
 from src.utils import (
     Style,
     compress_password,

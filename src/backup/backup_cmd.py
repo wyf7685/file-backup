@@ -5,7 +5,7 @@ from src.utils import Style
 from src.const.exceptions import CommandExit
 from src.models import find_backup
 
-from .backup_host import BackupHost
+from . import host as BackupHost
 
 
 @Console.register("backup", "执行备份", arglen=[0, 1])
