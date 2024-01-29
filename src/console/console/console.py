@@ -60,9 +60,11 @@ async def __run():
 
 async def start():
     # 搜索并加载控制台命令
-    for name in [i for i in sys.modules if i.startswith("src.")]:
+    for module in [i for i in sys.modules if i.startswith("src.")]:
+        name = module.split(".")[-1]
         with suppress(ImportError):
-            import_module(f"{name}.{name.split(".")[-1]}_cmd")
+            import_module(f"{module}.{name}_cmd")
+            logger.debug(f"加载模块命令: {Style.GREEN(name)}")
 
     await __run()
 

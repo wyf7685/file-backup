@@ -16,7 +16,7 @@ class Backup(object):
             self.logger.success(f"{Style.GREEN("Backup")} [{Style.CYAN(config.name)}] 初始化成功")
         return self
 
-    async def apply(self, /, max_try: int = 3) -> None:
+    async def apply(self, *, max_try: int = 3) -> None:
         assert isinstance(self, StrategyProtocol)
         with self.logger.catch():
             for i in range(max_try):

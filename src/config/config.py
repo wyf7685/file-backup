@@ -1,7 +1,8 @@
+import functools
+from hashlib import md5
 from pathlib import Path
 from typing import List
 
-from hashlib import md5
 from pydantic import BaseModel, Field
 
 from src.const import BackupMode
@@ -16,8 +17,14 @@ class BackupConfig(BaseModel):
     local_path: Path
     interval: int
 
-    def get_remote(self) -> Path:
-        return Path(md5(self.name.encode()).hexdigest())
+    @staticmethod
+    @functools.cache
+    def __remote(name: str) -> Path:
+        return Path(md5(name.encode()).hexdigest())
+
+    @property
+    def remote(self) -> Path:
+        return self.__remote(self.name)
 
 
 class ExperimentConfig(BaseModel):

@@ -13,7 +13,6 @@ class CompressStrategy(Strategy):
 
     @override
     async def _make_backup(self) -> None:
-        await self.prepare()
         self.check_local()
         uuid = get_uuid()
         self.check_uuid(uuid)

@@ -54,6 +54,7 @@ class AbstractStrategy(metaclass=ABCMeta):
 
 class Strategy(AbstractStrategy):
     __strategy_name__: str = "Strategy"
+    __prepared: bool
     _cache: Path
 
     @classmethod
@@ -62,6 +63,7 @@ class Strategy(AbstractStrategy):
         self.config = config
         self.client = await get_backend().create()
         self._cache = PATH.CACHE / get_uuid().split("-")[0]
+        self.__prepared = False
         name = self.config.name
         self.logger = get_logger(cls.__strategy_name__, name).opt(colors=True)
         return self
@@ -76,7 +78,7 @@ class Strategy(AbstractStrategy):
 
     @property
     def remote(self) -> Path:
-        return self.config.get_remote()
+        return self.config.remote
 
     def cache(self, uuid: str) -> Path:
         return mkdir(self.CACHE / uuid)
@@ -138,8 +140,12 @@ class Strategy(AbstractStrategy):
             raise RestartBackup("uuid重复")
 
     async def prepare(self, *, miss_ok: bool = False) -> None:
+        if self.__prepared:
+            return
+
         await self.client.mkdir(self.remote)
         await self.load_record(miss_ok=miss_ok)
+        self.__prepared = True
 
     def get_record(self, uuid: str) -> Optional[BackupRecord]:
         for record in self.record:
@@ -174,7 +180,7 @@ class Strategy(AbstractStrategy):
 
     @override
     async def make_recovery(self, record: BackupRecord) -> None:
-        await self.prepare()
+        await self.prepare(miss_ok=False)
         result = None
         try:
             result = await self._make_recovery(record)

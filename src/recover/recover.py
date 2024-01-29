@@ -1,8 +1,9 @@
 from src.config import BackupConfig
+from src.const.exceptions import StopOperation
 from src.models import BackupRecord
 from src.strategy import StrategyProtocol, get_strategy
 from src.utils import Style
-from src.const.exceptions import StopOperation
+
 
 class Recover(object):
     @classmethod
