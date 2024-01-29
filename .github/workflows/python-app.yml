@@ -23,6 +23,7 @@ jobs:
         cache: "poetry"
     - name: Install dependencies
       run: |
+        python -m pip install poetry -U
         python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
@@ -45,6 +46,7 @@ jobs:
         cache: "poetry"
     - name: Install dependencies
       run: |
+        python -m pip install poetry -U
         python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
