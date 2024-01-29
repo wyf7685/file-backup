@@ -3,7 +3,6 @@ import shutil
 import sys
 from subprocess import PIPE, Popen
 
-
 NAME = "file-backup"
 
 
@@ -11,10 +10,12 @@ def popen(args):
     return Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
 
-def build_command():
+def build_command(poetry: bool = False, dist: str = "."):
     return [
+        "python -m",
+        "poetry run" if poetry else "",
         "pyinstaller -F -c --clean",
-        "--distpath .",
+        f"--distpath {dist}",
         f"--name {NAME}",
         "-i src/shell32_172.ico",
         "--noupx",
@@ -31,6 +32,12 @@ def build_command():
     ]
 
 
+def build_actions():
+    command = " ".join(build_command(dist="dist"))
+    print(command)
+    os.system(command)
+
+
 def build():
     p = popen("poetry about")
     p.communicate()
@@ -40,10 +47,7 @@ def build():
     )
     popen(env_setup_cmd).communicate()
 
-    args = build_command()
-    if POETRY:
-        args.insert(0, "poetry run")
-    build_cmd = " ".join(args)
+    build_cmd = " ".join(build_command(poetry=POETRY))
 
     os.system(build_cmd)
 
@@ -53,8 +57,6 @@ def build():
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "actions":
-        command = " ".join(build_command())
-        print(command)
-        os.system(command)
+        build_actions()
     else:
         build()
