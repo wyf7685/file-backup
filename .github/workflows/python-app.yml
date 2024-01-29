@@ -23,11 +23,11 @@ jobs:
         cache: "poetry"
     - name: Install dependencies
       run: |
-        python -m pip install poetry -U
+        python -m pip install -U poetry pyinstaller
         python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
-        python -m poetry run python ./build-exe.py actions
+        python ./build-exe.py actions
     - uses: actions/upload-artifact@v4
       with:
         name: file-backup_ubuntu
@@ -46,11 +46,11 @@ jobs:
         cache: "poetry"
     - name: Install dependencies
       run: |
-        python -m pip install poetry -U
+        python -m pip install -U poetry pyinstaller
         python -m poetry install --with=dev --no-root
     - name: Build binary
       run: |
-        python -m poetry run python ./build-exe.py actions
+        python ./build-exe.py actions
     - uses: actions/upload-artifact@v4
       with:
         name: file-backup_windows

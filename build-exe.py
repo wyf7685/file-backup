@@ -33,7 +33,7 @@ def build_command(poetry: bool = False, dist: str = "."):
 
 
 def build_actions():
-    command = " ".join(build_command(dist="dist"))
+    command = " ".join(build_command(True, "dist"))
     print(command)
     os.system(command)
 
