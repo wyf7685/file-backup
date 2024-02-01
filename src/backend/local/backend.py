@@ -88,7 +88,7 @@ class LocalBackend(Backend):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
-        if isinstance(local_fp, Path) and not local_fp.is_file():
+        if not local_fp.is_file():
             msg = f"上传文件失败: {Style.PATH_DEBUG(local_fp)} 不存在"
             self.logger.debug(msg)
             return BackendError(msg)

@@ -1,4 +1,3 @@
-import typing as _t
 import pathlib as _p
 
 from pydantic import BaseModel
@@ -25,13 +24,13 @@ class BackupUpdate(BaseModel):
     """
     path: _p.Path
     """相对路径"""
-    md5: _t.Optional[str]
+    md5: str | None
     """
     * 文件: md5值
     * 文件夹/移除: None
     """
 
 
-def find_backup(name: str) -> _t.Optional[BackupConfig]:
+def find_backup(name: str) -> BackupConfig | None:
     if data := [i for i in src.config.backup_list if i.name == name]:
         return data[0]

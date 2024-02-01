@@ -1,1 +1,3 @@
-from .backend import LocalBackend as Backend
+from .backend import LocalBackend
+
+Backend = LocalBackend

@@ -1,1 +1,3 @@
-from .increment import IncrementStrategy as Strategy
+from .increment import IncrementStrategy
+
+Strategy = IncrementStrategy

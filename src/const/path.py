@@ -1,11 +1,10 @@
 import os as _os
-from pathlib import Path
+import pathlib as _p
 from uuid import uuid4 as _uuid
 
-DATA = Path("data")
+DATA = _p.Path("data")
 CONFIG = DATA / "config.json"
-CACHE = DATA / "cache"
-__cache_name = "file-backup_" + str(_uuid()).split("-")[0]
-CACHE = Path(_os.getenv("TEMP", CACHE)) / __cache_name
+__CACHE_NAME = "file-backup_" + str(_uuid()).split("-")[0]
+CACHE = _p.Path(_os.getenv("TEMP", DATA / "cache")) / __CACHE_NAME
 
 [p.mkdir(parents=True, exist_ok=True) for p in {DATA, CACHE}]

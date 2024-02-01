@@ -1,1 +1,3 @@
-from .backend import ServerBackend as Backend
+from .backend import ServerBackend
+
+Backend = ServerBackend

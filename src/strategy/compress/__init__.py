@@ -1,1 +1,3 @@
-from .compress import CompressStrategy as Strategy
+from .compress import CompressStrategy
+
+Strategy = CompressStrategy

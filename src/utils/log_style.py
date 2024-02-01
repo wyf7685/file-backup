@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Self
 class _StyleInt(int):
     @functools.cache
     def __keys(self) -> List[str]:
-        keys = []  # type: List[str]
+        keys: List[str] = []
         k = 1
         style = int(self)
         while style:
@@ -25,7 +25,7 @@ class _StyleInt(int):
         return text
 
     def __or__(self, value: int) -> Self:
-        return type(self)(int(self) | value)
+        return type(self)(super().__or__(value))
 
     def __repr__(self) -> str:
         return f"<StyleInt {super().__repr__()}: {','.join(self.__keys())}>"

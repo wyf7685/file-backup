@@ -1,1 +1,3 @@
-from . import console as Console
+from . import console
+
+Console = console

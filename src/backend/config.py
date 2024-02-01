@@ -1,4 +1,4 @@
-from typing import List, Tuple, Type
+from typing import Dict, Self, Tuple, Type, cast, override
 
 from pydantic import BaseModel, Field
 
@@ -10,8 +10,10 @@ from src.const import BackendType
 class BackendConfig(ConfigModel):
     type: BackendType = Field(default="local")
 
-    def save(self):
+    @override
+    def save(self) -> Self:
         global_config.save()
+        return self
 
 
 class Config(ConfigModel):
@@ -21,28 +23,20 @@ class Config(ConfigModel):
 config = global_config.parse_config(Config).backend
 
 
-def _mix_config(config_cls: Type) -> Tuple[str, Config]:
+def _mix_model[T](name: str, base: Type[T], attr: Dict[str, type]) -> Type[T]:
+    attrs = {k: Field(default_factory=v) for k, v in attr.items()}
+    attrs |= {"__annotations__": attr}
+    return cast(Type[T], type(name, (base,), attrs))
+
+
+def _mix_config[T](config_cls: type) -> Tuple[str, Config]:
     name = getattr(config_cls, "__backend_name__", None)
     assert name is not None, "Backend 的 Config 类必须拥有 __backend_name__ 属性"
-    Mixed = type(
-        config_cls.__name__,
-        (BackendConfig,),
-        {
-            "__annotations__": {name: config_cls},
-            name: Field(default_factory=config_cls),
-        },
-    )
 
-    return name, global_config.parse_config(
-        type(
-            "Config",
-            (ConfigModel,),
-            {
-                "__annotations__": {"backend": Mixed},
-                "backend": Field(default_factory=Mixed),  # type: ignore
-            },
-        )
-    )
+    MixedBackend = _mix_model(config_cls.__name__, BackendConfig, {name: config_cls})
+    MixedConfig = _mix_model("Config", Config, {"backend": MixedBackend})
+
+    return name, global_config.parse_config(MixedConfig)
 
 
 def parse_config[T](config_cls: Type[T]) -> T:

@@ -8,6 +8,3 @@ from src.log import get_logger as get_logger
 from src.log import set_log_level as set_log_level
 from src.recover import Recover as Recover
 from src.utils import Style as Style
-from src.utils import clean_pycache as _
-
-_()

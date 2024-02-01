@@ -6,16 +6,16 @@ from src.utils import Style
 from src.utils import mkdir as local_mkdir
 
 from ..backend import Backend, BackendResult
-from .sdk import get_file, list_dir, mkdir, put_file, refresh_access_token
+from .sdk import get_file, list_dir, mkdir, put_file, refresh_token
 from .sdk.exceptions import BackendError, BaiduError
 
 
 class BaiduBackend(Backend):
     @override
     @classmethod
-    async def create(cls):  # sourcery skip: inline-immediately-returned-variable
+    async def create(cls):
         self = await super().create()
-        # await refresh_access_token()
+        await refresh_token()
         return self
 
     @override
@@ -71,7 +71,7 @@ class BaiduBackend(Backend):
             local_fp = Path(local_fp)
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
-        if isinstance(local_fp, Path) and not local_fp.is_file():
+        if not local_fp.is_file():
             msg = f"上传文件失败: {Style.PATH_DEBUG(local_fp)} 不存在"
             self.logger.debug(msg)
             return BackendError(msg)

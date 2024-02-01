@@ -7,7 +7,7 @@ from hashlib import md5
 from pathlib import Path
 from sys import exc_info
 from types import FrameType
-from typing import Callable, Coroutine
+from typing import Callable, Coroutine, cast
 from uuid import uuid4
 
 
@@ -62,15 +62,15 @@ def run_sync[**P, R](call: Callable[P, R]) -> Callable[P, Coroutine[None, None, 
     return wrapper
 
 
-def _get_frame(n) -> FrameType:
+def _get_frame(__depth: int, /) -> FrameType:
     # sourcery skip: raise-specific-error
     try:
         raise Exception
     except Exception:
         frame = exc_info()[2].tb_frame.f_back  # type: ignore
-        for _ in range(n):
+        for _ in range(__depth):
             frame = frame.f_back  # type: ignore
         return frame  # type: ignore
 
 
-get_frame = sys._getframe if hasattr(sys, "_getframe") else _get_frame
+get_frame = cast(Callable[[int], FrameType], getattr(sys, "_getframe", _get_frame))

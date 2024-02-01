@@ -1,7 +1,7 @@
 import functools
 import re
 from functools import partial
-from typing import Callable, Dict, Sequence, TextIO, override
+from typing import Any, Callable, Dict, Sequence, TextIO, override
 
 from colorama.ansi import AnsiBack, AnsiFore, AnsiStyle
 from colorama.ansitowin32 import AnsiToWin32
@@ -20,7 +20,7 @@ class AnsiToHtml(AnsiToWin32):
     @override
     def __init__(self, wrapped: TextIO) -> None:
         super().__init__(wrapped, True, False, False)
-        self.win32_calls = {
+        self.win32_calls = {  # type: ignore
             AnsiStyle.RESET_ALL: self.reset_all,
             AnsiStyle.BRIGHT: self.disable,
             AnsiStyle.DIM: self.disable,
@@ -61,11 +61,11 @@ class AnsiToHtml(AnsiToWin32):
             AnsiBack.LIGHTWHITE_EX: self.disable,
         }
 
-    def fore(self, fore) -> str:
+    def fore(self, fore: Any) -> str:
         self.span_depth += 1
         return f'<span style="color:{fore}">'
 
-    def reset_all(self) -> str:
+    def reset_all(self) -> str:  # type: ignore
         tag = "</span>" * self.span_depth
         self.span_depth = 0
         return tag
@@ -74,17 +74,17 @@ class AnsiToHtml(AnsiToWin32):
         self.span_depth += 1
         return "<span>"
 
-    @functools.cache
+    @functools.cache  # type: ignore
     @override
     def call_win32(self, command: str, params: Sequence[int]) -> str:
         if command == "m":
             for param in params:
-                if param in self.win32_calls:
+                if param in self.win32_calls:  # type: ignore
                     return self.win32_calls[param]()
         return ""
 
     @override
-    def convert_ansi(self, paramstring: str, command: str) -> str:
+    def convert_ansi(self, paramstring: str, command: str) -> str:  # type: ignore
         params = self.extract_params(command, paramstring)
         return self.call_win32(command, params)
 
@@ -93,7 +93,7 @@ class AnsiToHtml(AnsiToWin32):
         return text
 
     @override
-    def write_and_convert(self, text: str) -> int:
+    def write_and_convert(self, text: str) -> int:  # type: ignore
         cursor = 0
         count = 0
         text = self.convert_osc(text)
@@ -109,7 +109,7 @@ class AnsiToHtml(AnsiToWin32):
         return count
 
     @override
-    def write(self, text: str) -> int:
+    def write(self, text: str) -> int:  # type: ignore
         return self.write_and_convert(text)
 
 
@@ -121,6 +121,7 @@ def _init_log_html() -> int:
 
     def sink(msg: str) -> None:
         from src.config import config
+
         if not config.experiment.log_html:
             return
 

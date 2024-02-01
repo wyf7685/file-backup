@@ -30,7 +30,7 @@ class IncrementStrategy(Strategy):
         Returns:
             `List[Tuple[BackupUpdateType, Path]]`: 列表元素为元组: ("file"或"dir", 相对路径)
         """
-        res = []  # type: List[Tuple[BackupUpdateType, Path]]
+        res: List[Tuple[BackupUpdateType, Path]] = []
 
         for p, dirs, files in self.local.walk():
             relp = p.relative_to(self.local)
@@ -48,7 +48,7 @@ class IncrementStrategy(Strategy):
         return dict(await asyncio.gather(*[_run(p) for p in fp_list]))
 
     async def get_update_list(self) -> List[BackupUpdate]:
-        remote = {}  # type: Dict[Path, BackupUpdate]
+        remote: Dict[Path, BackupUpdate] = {}
 
         # 按序遍历历史备份
         for rec in self.record:
@@ -76,7 +76,7 @@ class IncrementStrategy(Strategy):
         md5_cache = await self.get_local_md5([p for t, p in local_list if t == "file"])
 
         # 对比本地待备份文件
-        res = []  # type: List[Tuple[BackupUpdateType, Path]]
+        res: List[Tuple[BackupUpdateType, Path]] = []
         for t, p in local_list:
             if t == "dir":
                 if p not in remote:
@@ -180,7 +180,7 @@ class IncrementStrategy(Strategy):
     async def get_updates(
         self, records: List[BackupRecord]
     ) -> Dict[Path, Tuple[str, BackupUpdate]]:
-        updates = {}  # type: Dict[Path, Tuple[str, BackupUpdate]]
+        updates: Dict[Path, Tuple[str, BackupUpdate]] = {}
         cache_prefix = f"{id(updates)}-"
         for rec in records:
             self.logger.debug(f"加载备份 [{Style.CYAN(rec.uuid)}]")
@@ -254,5 +254,7 @@ class IncrementStrategy(Strategy):
                     src.rename(dst)
                 case "dir":
                     mkdir(dst)
+                case _:
+                    pass
 
         return result

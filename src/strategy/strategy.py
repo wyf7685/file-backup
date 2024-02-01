@@ -3,7 +3,7 @@ import shutil
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Self, Type, override
+from typing import TYPE_CHECKING, List, Optional, Self, override
 
 from src.backend import Backend, get_backend
 from src.config import BackupConfig
@@ -19,9 +19,6 @@ if TYPE_CHECKING:
 
 class AbstractStrategy(metaclass=ABCMeta):
     logger: "Logger"
-    config: BackupConfig
-    client: Backend
-    record: List[BackupRecord]
 
     @classmethod
     async def init(cls, config: BackupConfig) -> Self:
@@ -55,14 +52,17 @@ class AbstractStrategy(metaclass=ABCMeta):
 class Strategy(AbstractStrategy):
     __strategy_name__: str = "Strategy"
     __prepared: bool
-    _cache: Path
+    __cache: Path
+    client: Backend
+    config: BackupConfig
+    record: List[BackupRecord]
 
     @classmethod
     async def init(cls, config: BackupConfig) -> Self:
         self = cls.__new__(cls)
         self.config = config
         self.client = await get_backend().create()
-        self._cache = PATH.CACHE / get_uuid().split("-")[0]
+        self.__cache = PATH.CACHE / get_uuid().split("-")[0]
         self.__prepared = False
         name = self.config.name
         self.logger = get_logger(cls.__strategy_name__, name).opt(colors=True)
@@ -70,7 +70,7 @@ class Strategy(AbstractStrategy):
 
     @property
     def CACHE(self) -> Path:
-        return mkdir(self._cache)
+        return mkdir(self.__cache)
 
     @property
     def local(self) -> Path:
@@ -181,10 +181,8 @@ class Strategy(AbstractStrategy):
     @override
     async def make_recovery(self, record: BackupRecord) -> None:
         await self.prepare(miss_ok=False)
-        result = None
         try:
             result = await self._make_recovery(record)
+            await self._finish_recovery(result)
         finally:
-            if result:
-                await self._finish_recovery(result)
             await self.cleanup()

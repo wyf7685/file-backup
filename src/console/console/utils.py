@@ -2,9 +2,10 @@ import asyncio
 import time
 from threading import Thread
 from typing import List, Optional
+from queue import Queue
 
 from src.const.exceptions import CommandExit
-from src.utils import Queue, Style
+from src.utils import Style
 
 
 class InputQueue(object):
@@ -35,7 +36,7 @@ class InputQueue(object):
 
 def parse_cmd(cmd: str) -> List[str]:
     cmd += " "
-    args = []
+    args: List[str] = []
     p = i = 0
     quote = None
 

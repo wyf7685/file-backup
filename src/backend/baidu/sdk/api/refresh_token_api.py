@@ -9,7 +9,7 @@ from ..sdk_config import config, get_logger
 _refreshing: bool = False
 
 
-async def refresh_access_token() -> None:
+async def refresh_token() -> None:
     global _refreshing
     if _refreshing or time.time() < config.expire - 600:
         return
