@@ -1,16 +1,10 @@
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    List,
-    Literal,
-    Optional,
-    Self,
-    Set,
-    Tuple,
-    Type,
-    override,
-)
+from typing import List, Literal, Optional, Self, Set, Tuple, Type, override
+
+import loguru
 
 from src.const import StrPath
 from src.const.exceptions import BackendError
@@ -18,9 +12,6 @@ from src.log import get_logger
 from src.utils import Style, get_frame
 
 from .config import parse_config
-
-if TYPE_CHECKING:
-    from src.log import Logger
 
 type BackendResult = Optional[BackendError]
 
@@ -30,54 +21,45 @@ def _color(path: StrPath) -> str:
 
 
 class AbstractBackend(metaclass=ABCMeta):
-    _logger: "Logger"
+    _logger: loguru.Logger
 
     @abstractmethod
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     @classmethod
     @abstractmethod
-    async def create(cls) -> Self:
-        ...
+    async def create(cls) -> Self: ...
 
     @abstractmethod
-    async def mkdir(self, path: StrPath) -> None:
-        ...
+    async def mkdir(self, path: StrPath) -> None: ...
 
     @abstractmethod
-    async def rmdir(self, path: StrPath) -> None:
-        ...
+    async def rmdir(self, path: StrPath) -> None: ...
 
     @abstractmethod
     async def list_dir(
         self, path: StrPath = "."
-    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
-        ...
+    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]: ...
 
     @abstractmethod
     async def get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @abstractmethod
     async def put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @abstractmethod
     async def get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @abstractmethod
     async def put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
 
 class Backend(AbstractBackend):
@@ -89,7 +71,7 @@ class Backend(AbstractBackend):
         self.__mkdir_cache = set()
 
     @property
-    def logger(self) -> "Logger":
+    def logger(self) -> loguru.Logger:
         frame = get_frame(1)
         return self._logger.bind(head=frame.f_code.co_name)
 
@@ -98,42 +80,35 @@ class Backend(AbstractBackend):
         return parse_config(config_cls)
 
     @abstractmethod
-    async def _mkdir(self, path: StrPath) -> None:
-        ...
+    async def _mkdir(self, path: StrPath) -> None: ...
 
     @abstractmethod
-    async def _rmdir(self, path: StrPath) -> None:
-        ...
+    async def _rmdir(self, path: StrPath) -> None: ...
 
     @abstractmethod
     async def _list_dir(
         self, path: StrPath = "."
-    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
-        ...
+    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]: ...
 
     @abstractmethod
     async def _get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @abstractmethod
     async def _put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @abstractmethod
     async def _get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @abstractmethod
     async def _put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
-    ) -> BackendResult:
-        ...
+    ) -> BackendResult: ...
 
     @classmethod
     @override

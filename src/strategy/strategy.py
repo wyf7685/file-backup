@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import contextlib
 import shutil
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Self, override
+from typing import List, Optional, Self, override
+
+import loguru
 
 from src.backend import Backend, get_backend
 from src.config import BackupConfig
@@ -11,42 +15,32 @@ from src.const import PATH
 from src.const.exceptions import RestartBackup, StopBackup, StopOperation
 from src.log import get_logger
 from src.models import BackupRecord
-from src.utils import Style, get_uuid, json, mkdir, run_sync
-
-if TYPE_CHECKING:
-    from src.log import Logger
+from src.utils import ByteReader, ByteWriter, Style, get_uuid, mkdir, run_sync
 
 
 class AbstractStrategy(metaclass=ABCMeta):
-    logger: "Logger"
+    logger: loguru.Logger
 
     @classmethod
-    async def init(cls, config: BackupConfig) -> Self:
-        ...
+    async def init(cls, config: BackupConfig) -> Self: ...
 
     @abstractmethod
-    async def _make_backup(self) -> None:
-        ...
+    async def _make_backup(self) -> None: ...
 
     @abstractmethod
-    async def _make_recovery(self, record: BackupRecord) -> Path:
-        ...
+    async def _make_recovery(self, record: BackupRecord) -> Path: ...
 
     @abstractmethod
-    async def make_backup(self) -> None:
-        ...
+    async def make_backup(self) -> None: ...
 
     @abstractmethod
-    async def make_recovery(self, record: BackupRecord) -> None:
-        ...
+    async def make_recovery(self, record: BackupRecord) -> None: ...
 
     @abstractmethod
-    async def prepare(self, *, miss_ok: bool = False) -> None:
-        ...
+    async def prepare(self, *, miss_ok: bool = False) -> None: ...
 
     @abstractmethod
-    def get_record(self, uuid: str) -> Optional[BackupRecord]:
-        ...
+    def get_record(self, uuid: str) -> Optional[BackupRecord]: ...
 
 
 class Strategy(AbstractStrategy):
@@ -84,19 +78,20 @@ class Strategy(AbstractStrategy):
         return mkdir(self.CACHE / uuid)
 
     async def load_record(self, *, miss_ok: bool = False) -> None:
-        remote_fp = self.remote / "backup.json"
-        cache_fp = self.CACHE / "backup.json"
+        remote_fp = self.remote / "backup.7685"
+        cache_fp = self.CACHE / "backup.7685"
 
         # 下载备份记录
         if err := await self.client.get_file(cache_fp, remote_fp):
             if not miss_ok:
                 raise StopOperation("备份记录下载失败") from err
             self.logger.info("备份记录不存在, 正在创建...")
-            cache_fp.write_text("[]")
+            self.record = []
+            return
 
-        raw = cache_fp.read_text()
+        data = cache_fp.read_bytes()
         cache_fp.unlink()
-        self.record = [BackupRecord.model_validate(i) for i in json.loads(raw)]
+        self.record = ByteReader(data).read_list()
 
     async def add_record(self, uuid: str) -> None:
         """创建一个新备份
@@ -104,8 +99,8 @@ class Strategy(AbstractStrategy):
         Args:
             uuid (str): 本次备份的uuid
         """
-        remote_fp = self.remote / "backup.json"
-        cache_fp = self.CACHE / "backup.json"
+        remote_fp = self.remote / "backup.7685"
+        cache_fp = self.CACHE / "backup.7685"
 
         # 添加本次备份uuid
         now = datetime.now()
@@ -117,10 +112,10 @@ class Strategy(AbstractStrategy):
             )
         )
         self.record.sort(key=lambda x: x.timestamp)
-        cache_fp.write_text(
-            json.dumps([record.model_dump() for record in self.record]),
-            encoding="utf-8",
-        )
+
+        writer = ByteWriter()
+        writer.write_list(self.record)
+        cache_fp.write_bytes(writer.get())
 
         # 上传备份清单
         if err := await self.client.put_file(cache_fp, remote_fp):

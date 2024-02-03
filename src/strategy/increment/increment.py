@@ -7,11 +7,12 @@ from src.const import BackupUpdateType
 from src.const.exceptions import StopBackup, StopRecovery
 from src.models import BackupRecord, BackupUpdate
 from src.utils import (
+    ByteReader,
+    ByteWriter,
     Style,
     compress_password,
     get_md5,
     get_uuid,
-    json,
     mkdir,
     pack_7zip_multipart,
     run_sync,
@@ -47,6 +48,18 @@ class IncrementStrategy(Strategy):
 
         return dict(await asyncio.gather(*[_run(p) for p in fp_list]))
 
+    async def get_update_info(self, uuid: str) -> List[BackupUpdate]:
+        cache_fp = self.CACHE / "update.7685"
+        remote_fp = self.remote / uuid / "update.7685"
+
+        # 下载备份修改记录
+        if err := await self.client.get_file(cache_fp, remote_fp):
+            raise StopBackup(f"下载备份清单 {remote_fp} 失败") from err
+
+        data = ByteReader(cache_fp.read_bytes()).read_list()
+        cache_fp.unlink()
+        return data
+
     async def get_update_list(self) -> List[BackupUpdate]:
         remote: Dict[Path, BackupUpdate] = {}
 
@@ -54,19 +67,13 @@ class IncrementStrategy(Strategy):
         for rec in self.record:
             name = f"{Style.CYAN(self.config.name)} [{Style.CYAN(rec.uuid)}]"
             self.logger.debug(f"下载 {name} 的备份清单")
-            cache_fp = self.CACHE / f"{rec.uuid}.json"
-            remote_fp = self.remote / rec.uuid / "update.json"
-
-            # 下载备份修改记录
-            if err := await self.client.get_file(cache_fp, remote_fp):
-                raise StopBackup(f"下载备份清单 {remote_fp} 失败") from err
 
             # 读取备份修改记录
-            for i in json.loads(cache_fp.read_text("utf-8")):
-                upd = BackupUpdate.model_validate(i)
-                if upd.md5 != "":
+            upds = await self.get_update_info(rec.uuid)
+            for upd in upds:
+                if upd.type != "del":
                     remote[upd.path] = upd
-                elif upd.path in remote and remote[upd.path].type == "del":
+                elif upd.path in remote:
                     del remote[upd.path]
 
         # 获取本地文件列表
@@ -88,14 +95,7 @@ class IncrementStrategy(Strategy):
                 del remote[p]
 
         res.extend(("del", v.path) for v in remote.values())
-        return [
-            BackupUpdate(
-                type=t,
-                path=p,
-                md5=md5_cache.get(p, None),
-            )
-            for t, p in res
-        ]
+        return [BackupUpdate(type=t, path=p, md5=md5_cache.get(p, "")) for t, p in res]
 
     def cache_update(self, update: List[BackupUpdate]) -> Path:
         cache = self.cache(get_uuid())
@@ -117,28 +117,30 @@ class IncrementStrategy(Strategy):
 
         self.logger.debug("开始压缩待备份文件...")
         archives = await pack_7zip_multipart(
-            archive_dir / f"{uuid}.7z",
+            archive_dir / "7685.7z",
             cache,
             volume_size=100,
             password=password,
         )
         self.logger.debug("待备份文件分卷压缩完成")
 
-        self.logger.debug(f"本地备份文件分卷压缩包目录: {Style.PATH_DEBUG(archive_dir)}")
+        self.logger.debug(
+            f"本地备份文件分卷压缩包目录: {Style.PATH_DEBUG(archive_dir)}"
+        )
         self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
 
         async def upload(archive: Path) -> None:
             if err := await self.client.put_file(archive, target / archive.name):
-                raise StopBackup(f"上传分卷压缩包 {Style.PATH(archive.name)} 失败") from err
+                raise StopBackup(
+                    f"上传分卷压缩包 {Style.PATH(archive.name)} 失败"
+                ) from err
 
         await asyncio.gather(*[upload(i) for i in archives])
 
-        multipart_cache = cache / "multipart.txt"
-        multipart_cache.write_text("\n".join(i.name for i in archives))
-        self.logger.debug(f"上传分卷清单: {Style.PATH_DEBUG(multipart_cache)}")
-        if err := await self.client.put_file(
-            multipart_cache, target / multipart_cache.name
-        ):
+        mpcache = cache / "mp.7685"
+        mpcache.write_bytes(ByteWriter().write_list([i.name for i in archives]).get())
+        self.logger.debug(f"上传分卷清单: {Style.PATH_DEBUG(mpcache)}")
+        if err := await self.client.put_file(mpcache, target / mpcache.name):
             raise StopBackup("上传分卷清单失败") from err
 
     @override
@@ -166,38 +168,27 @@ class IncrementStrategy(Strategy):
         await self.compress_and_upload(uuid, cache)
 
         # 生成本次备份清单
-        upd_file_cnt = len([upd for upd in update if upd.type == "file"])
-        upd_cache = cache / "update.json"
-        upd_cache.write_text(json.dumps([upd.model_dump() for upd in update]))
-        if err := await self.client.put_file(upd_cache, target / "update.json"):
+        upd_cache = cache / "update.7685"
+        upd_cache.write_bytes(ByteWriter().write_list(update).get())
+        if err := await self.client.put_file(upd_cache, target / upd_cache.name):
             raise StopBackup(f"上传备份清单时出现错误: {err}") from err
 
         # 更新备份记录
         await self.add_record(uuid)
         self.logger.success(f"[{Style.CYAN(uuid)}] 备份完成!")
-        self.logger.success(f"本次备份更新 {Style.YELLOW(upd_file_cnt)} 个文件")
+        self.logger.success(f"本次备份更新 {Style.YELLOW(len(update))} 个项目")
 
     async def get_updates(
         self, records: List[BackupRecord]
     ) -> Dict[Path, Tuple[str, BackupUpdate]]:
         updates: Dict[Path, Tuple[str, BackupUpdate]] = {}
-        cache_prefix = f"{id(updates)}-"
         for rec in records:
             self.logger.debug(f"加载备份 [{Style.CYAN(rec.uuid)}]")
-            cache = self.cache(cache_prefix + rec.uuid)
-
-            # 下载备份清单
-            cache_fp = cache / f"{rec.uuid}.json"
-            remote_fp = self.remote / rec.uuid / "update.json"
-            if err := await self.client.get_file(cache_fp, remote_fp):
-                raise StopRecovery(f"下载 [{Style.CYAN(rec.uuid)}] 备份清单失败") from err
 
             # 遍历备份清单
-            for i in json.loads(cache_fp.read_text("utf-8")):
-                upd = BackupUpdate.model_validate(i)
+            for upd in await self.get_update_info(rec.uuid):
                 updates[upd.path] = (rec.uuid, upd)
 
-            shutil.rmtree(cache)
             self.logger.debug(f"备份 [{Style.CYAN(rec.uuid)}] 加载完成")
 
         # 移除类型为del(删除)的记录
@@ -216,29 +207,28 @@ class IncrementStrategy(Strategy):
         updates = await self.get_updates(records)
 
         # 下载恢复备份需要的压缩包并解压
-        multipart_cache = cache / "multipart.txt"
-        archive_cache = cache / "archive"
+        mpcache = cache / "mp.7685"
         for uuid in {i[0] for i in updates.values()}:
-            mkdir(archive_cache)
+            temp = mkdir(cache / "temp")
             remote = self.remote / uuid
             self.logger.debug(f"下载备份文件分卷清单: [{Style.CYAN(uuid)}]")
-            if err := await self.client.get_file(
-                multipart_cache, remote / "multipart.txt"
-            ):
-                raise StopRecovery(f"[{Style.CYAN(uuid)}] 备份文件分卷清单下载失败") from err
-            archive_name = multipart_cache.read_text().splitlines()
+            if err := await self.client.get_file(mpcache, remote / mpcache.name):
+                raise StopRecovery(
+                    f"[{Style.CYAN(uuid)}] 备份文件分卷清单下载失败"
+                ) from err
+
+            archive_name = ByteReader(mpcache.read_bytes()).read_list()
             for name in archive_name:
-                if err := await self.client.get_file(
-                    archive_cache / name, remote / name
-                ):
+                if err := await self.client.get_file(temp / name, remote / name):
                     raise StopRecovery(
-                        f"[{Style.CYAN(uuid)}] 备份文件 {Style.PATH(name)} 下载失败"
+                        f"[{Style.CYAN(uuid)}] 备份压缩包 {Style.PATH(name)} 下载失败"
                     ) from err
-            password = compress_password(uuid)
-            archive_head = archive_cache / archive_name[0]
+
             self.logger.debug(f"解压备份文件: [{Style.CYAN(uuid)}]")
+            password = compress_password(uuid)
+            archive_head = temp / archive_name[0]
             await unpack_7zip(archive_head, mkdir(cache / uuid), password)
-            shutil.rmtree(archive_cache)
+            shutil.rmtree(temp)
 
         # 从每个压缩包中提取需要的文件
         result = mkdir(cache / "result")
@@ -254,7 +244,7 @@ class IncrementStrategy(Strategy):
                     src.rename(dst)
                 case "dir":
                     mkdir(dst)
-                case _:
+                case "del":
                     pass
 
         return result

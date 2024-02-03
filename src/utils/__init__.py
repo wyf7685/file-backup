@@ -1,6 +1,7 @@
 from . import json_path
 from .ansi_html import AnsiToHtml as AnsiToHtml
 from .archives import *
+from .byterw import *
 from .log_style import Style as Style
 from .utils import clean_pycache as clean_pycache
 from .utils import compress_password as compress_password

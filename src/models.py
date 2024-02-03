@@ -24,10 +24,10 @@ class BackupUpdate(BaseModel):
     """
     path: _p.Path
     """相对路径"""
-    md5: str | None
+    md5: str
     """
     * 文件: md5值
-    * 文件夹/移除: None
+    * 文件夹/移除: ""
     """
 
 

@@ -1,17 +1,16 @@
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from __future__ import annotations
+
+from typing import Protocol, runtime_checkable
+
+import loguru
 
 from src.models import BackupRecord
-
-if TYPE_CHECKING:
-    from src.log import Logger
 
 
 @runtime_checkable
 class StrategyProtocol(Protocol):
-    logger: "Logger"
+    logger: loguru.Logger
 
-    async def make_backup(self) -> None:
-        ...
+    async def make_backup(self) -> None: ...
 
-    async def make_recovery(self, record: BackupRecord) -> None:
-        ...
+    async def make_recovery(self, record: BackupRecord) -> None: ...

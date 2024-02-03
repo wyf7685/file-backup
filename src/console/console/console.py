@@ -1,19 +1,20 @@
+from __future__ import annotations
+
 import asyncio
 import sys
-from contextlib import suppress
 from collections import defaultdict
+from contextlib import suppress
 from dataclasses import dataclass
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Set
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
+
+import loguru
 
 from src.const.exceptions import CommandExit, StopOperation
 from src.log import get_logger
 from src.utils import Style
 
 from .utils import InputQueue, check_arg_length, parse_cmd, styled_command
-
-if TYPE_CHECKING:
-    from src.log import Logger
 
 type CommandCallback = Callable[[List[str]], Awaitable[Any]]
 ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
@@ -22,7 +23,7 @@ ConsoleExitKey: Set[str] = {"stop", "exit", "quit"}
 @dataclass
 class CommandInfo(object):
     name: str
-    logger: "Logger"
+    logger: loguru.Logger
     callback: CommandCallback
     help: Optional[str]
     arglen: List[int]
@@ -30,7 +31,7 @@ class CommandInfo(object):
 
 __queue: InputQueue = InputQueue()
 __cmd_info: Dict[str, List[CommandInfo]] = defaultdict(list)
-logger: "Logger" = get_logger("Console").opt(colors=True)
+logger: loguru.Logger = get_logger("Console").opt(colors=True)
 
 
 async def __run():
