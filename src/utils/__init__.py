@@ -1,4 +1,4 @@
-from . import json_path as json
+from . import json_path
 from .ansi_html import AnsiToHtml as AnsiToHtml
 from .archives import *
 from .log_style import Style as Style
@@ -9,4 +9,5 @@ from .utils import get_md5 as get_md5
 from .utils import get_uuid as get_uuid
 from .utils import mkdir as mkdir
 from .utils import run_sync as run_sync
-json = json
+
+json = json_path

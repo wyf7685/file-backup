@@ -57,7 +57,7 @@ class ServerBackend(Backend):
             raise StopOperation(f"ServerBackend 状态异常: {res.message}")
         return self
 
-    async def _request(self, api: str, **data) -> _Result:
+    async def _request(self, api: str, **data: Any) -> _Result:
         url = f"{self.config.url}api/{api}"
         for k in data:
             if isinstance(data[k], Path):
