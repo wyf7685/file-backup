@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import logging
 import sys
+import typing as _t
+
 import loguru
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from loguru import Logger, Record
 
 
-logger: "Logger" = loguru.logger.opt()
+logger: loguru.Logger = loguru.logger.opt()
 
 DEFAULT_LOG_LEVEL: str = "DEBUG"
 
@@ -21,7 +21,7 @@ class LoguruHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        frame, depth = sys._getframe(6), 6
+        frame, depth = sys._getframe(6), 6  # type: ignore
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
@@ -40,7 +40,7 @@ class Filter:
         self.level = logger.level(level).no if isinstance(level, str) else level
         return self.level
 
-    def __call__(self, record: "Record") -> bool:
+    def __call__(self, record: loguru.Record) -> bool:
         if not isinstance(self.level, int):
             try:
                 self.level = self.update_level()
@@ -67,7 +67,7 @@ class Format:
         "{message}\n{exception}",
     ]
 
-    def __call__(self, record: "Record") -> str:
+    def __call__(self, record: loguru.Record) -> str:
         fmt = self.fmt_arr.copy()
 
         if name := record["extra"].get("name"):
@@ -83,7 +83,7 @@ class Format:
         return " ".join(fmt)
 
 
-LOGGING_CONFIG = {
+LOGGING_CONFIG: _t.Dict[str, _t.Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
@@ -129,7 +129,7 @@ def init_logger_sink() -> tuple[int, int]:
 def get_logger(
     name: str | None = None,
     head: str | None = None,
-) -> "Logger":
+) -> loguru.Logger:
     return logger.bind(name=name, head=head)
 
 

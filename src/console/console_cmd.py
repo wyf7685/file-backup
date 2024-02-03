@@ -1,4 +1,4 @@
-import json
+# import json
 from pathlib import Path
 from typing import List, cast
 
@@ -8,7 +8,7 @@ from src.const import PATH, BackupMode, BackupModeSet
 from src.const.exceptions import CommandExit
 from src.log import set_log_level
 from src.models import BackupRecord, find_backup
-from src.utils import Style, get_uuid
+from src.utils import Style, get_uuid, ByteReader
 
 from . import console as Console
 
@@ -73,19 +73,18 @@ async def cmd_query(args: List[str]) -> None:
     if backup is None:
         raise CommandExit(f"未找到名为 [{Style.CYAN(name)}] 的备份项")
 
-    remote_fp = backup.remote / "backup.json"
+    remote_fp = backup.remote / "backup.7685"
     cache_fp = PATH.CACHE / get_uuid()
     client = await backend()
-    if not await client.get_file(cache_fp, remote_fp):
-        raise CommandExit(f"[{Style.CYAN(name)}] 的备份记录下载失败")
+    if err := await client.get_file(cache_fp, remote_fp):
+        raise CommandExit(f"[{Style.CYAN(name)}] 的备份记录下载失败") from err
 
-    raw = json.loads(cache_fp.read_text())
+    data: List[BackupRecord] = ByteReader(cache_fp.read_bytes()).read_list()
     cache_fp.unlink(True)
 
     logger.info(f"[{Style.CYAN(name)}] 的备份记录")
     logger.info("================================")
-    for i, obj in enumerate(raw):
-        record = BackupRecord.model_validate(obj)
+    for i, record in enumerate(data):
         logger.info(f"备份记录 - {Style.YELLOW(f'id = {i+1}')}")
         logger.info(f"    时间: {Style.GREEN(record.timestr)}")
         logger.info(f"    uuid: {Style.CYAN(record.uuid)}")
@@ -105,7 +104,9 @@ async def cmd_add(args: List[str]) -> None:
     name, mode, interval, local = args
 
     if find_backup(name) is not None:
-        raise CommandExit(f"{Style.BLUE('备份项')} [{Style.CYAN(name)}] 已存在, 请勿重复创建!")
+        raise CommandExit(
+            f"{Style.BLUE('备份项')} [{Style.CYAN(name)}] 已存在, 请勿重复创建!"
+        )
 
     if mode not in BackupModeSet:
         mode_str = ", ".join(Style.YELLOW(i) for i in BackupModeSet)
@@ -174,7 +175,9 @@ async def cmd_log_level(args: List[str]) -> None:
         set_log_level(level)
     except Exception as e:
         err_msg = Style.RED(f"{e.__class__.__name__}: {e}")
-        raise CommandExit(f"修改日志等级为 {Style.YELLOW(level)} 时出现错误: {err_msg}") from e
+        raise CommandExit(
+            f"修改日志等级为 {Style.YELLOW(level)} 时出现错误: {err_msg}"
+        ) from e
 
     logger.info(f"已将当前日志等级修改为: {Style.YELLOW(level)}")
 

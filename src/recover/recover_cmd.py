@@ -23,5 +23,6 @@ async def cmd_recover(args: List[str]) -> None:
     recover = await Recover.create(config)
     if record := recover.get_record(uuid):
         await recover.apply(record)
+        return
 
     raise CommandExit(f"未找到 uuid 为 [{Style.CYAN(uuid)}] 的备份")
