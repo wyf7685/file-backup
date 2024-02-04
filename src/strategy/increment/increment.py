@@ -138,7 +138,7 @@ class IncrementStrategy(Strategy):
         await asyncio.gather(*[upload(i) for i in archives])
 
         mpcache = cache / "mp.7685"
-        mpcache.write_bytes(ByteWriter().write_list([i.name for i in archives]).get())
+        mpcache.write_bytes(ByteWriter().write([i.name for i in archives]).get())
         self.logger.debug(f"上传分卷清单: {Style.PATH_DEBUG(mpcache)}")
         if err := await self.client.put_file(mpcache, target / mpcache.name):
             raise StopBackup("上传分卷清单失败") from err
@@ -169,7 +169,7 @@ class IncrementStrategy(Strategy):
 
         # 生成本次备份清单
         upd_cache = cache / "update.7685"
-        upd_cache.write_bytes(ByteWriter().write_list(update).get())
+        upd_cache.write_bytes(ByteWriter().write(update).get())
         if err := await self.client.put_file(upd_cache, target / upd_cache.name):
             raise StopBackup(f"上传备份清单时出现错误: {err}") from err
 

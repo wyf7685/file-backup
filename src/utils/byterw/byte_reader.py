@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Set, Type
 from pydantic import BaseModel
 
 from .ba2value import ByteArray2Value, ba2vt
-from .common import VT
+from .common import VT, ValidType
 from .crypt import decrypt
 
 
@@ -61,3 +61,11 @@ class ByteReader(object):
 
     def read_model[T: BaseModel](self, __T: Type[T] = BaseModel) -> T:
         return self._read(VT.Model)
+
+    def read(self) -> ValidType:
+        if not self.any():
+            raise ValueError("没有可供读取的内容")
+
+        vt, self.__buffer = ba2vt(self.__buffer)
+        value, self.__buffer = ByteArray2Value[vt](self.__buffer)
+        return value

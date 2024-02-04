@@ -112,10 +112,7 @@ class Strategy(AbstractStrategy):
             )
         )
         self.record.sort(key=lambda x: x.timestamp)
-
-        writer = ByteWriter()
-        writer.write_list(self.record)
-        cache_fp.write_bytes(writer.get())
+        cache_fp.write_bytes(ByteWriter().write(self.record).get())
 
         # 上传备份清单
         if err := await self.client.put_file(cache_fp, remote_fp):

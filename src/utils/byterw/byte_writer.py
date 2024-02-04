@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Set, Self
 
 from pydantic import BaseModel
 
-from .common import VT
+from .common import VT, ValidType
 from .crypt import encrypt
 from .value2ba import (
     bool2ba,
@@ -17,6 +17,8 @@ from .value2ba import (
     model2ba,
     set2ba,
     str2ba,
+    value2ba,
+    t2vt,
 )
 
 
@@ -92,4 +94,9 @@ class ByteWriter(object):
     def write_model(self, value: BaseModel) -> Self:
         self._write_sign(VT.Model)
         self._write(model2ba(value))
+        return self
+
+    def write(self, value: ValidType) -> Self:
+        self._write_sign(t2vt(type(value)))
+        self._write(value2ba(value))
         return self

@@ -1,7 +1,8 @@
+import functools
 from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
-from typing import Union, Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Union
 
 from pydantic import BaseModel
 
@@ -20,6 +21,7 @@ class VT(IntEnum):
     Model = 10
 
 
+@functools.cache
 def i2vt(i: int) -> VT:
     match i:
         case 0:

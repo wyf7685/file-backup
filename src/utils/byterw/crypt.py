@@ -1,10 +1,12 @@
 import base64
+import functools
 import random
 import string
 
 __basic_map = string.ascii_uppercase + string.ascii_lowercase + string.digits + "+/="
 
 
+@functools.cache
 def __get_map(key: str | int) -> str:
     m = list(__basic_map[:-1])
     random.Random(key).shuffle(m)

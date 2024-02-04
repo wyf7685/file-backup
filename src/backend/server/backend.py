@@ -21,20 +21,6 @@ HEADERS = {
 }
 
 
-# class _Result(BaseModel):
-#     status: Literal["success", "error"] = Field()
-#     message: str = Field(default="")
-#     data: Dict[str, Any] = Field(default_factory=dict)
-
-#     @property
-#     def success(self):
-#         return self.status == "success"
-
-#     @property
-#     def failed(self):
-#         return not self.success
-
-
 class Result(BaseModel):
     success: bool = Field()
     message: str = Field(default="")
@@ -49,11 +35,11 @@ def solve_params(key: str, *data: Any) -> bytes:
     writer = ByteWriter(key)
     for value in data:
         if isinstance(value, Path):
-            writer.write_string(value.as_posix())
+            writer.write(value.as_posix())
         elif isinstance(value, bytes):
-            writer.write_bytes(value)
+            writer.write(value)
         else:
-            writer.write_string(str(value))
+            writer.write(str(value))
     return writer.get()
 
 
@@ -77,25 +63,6 @@ class ServerBackend(Backend):
         if res.failed:
             raise StopOperation(f"ServerBackend 状态异常: {res.message}")
         return self
-
-    # async def _request(self, api: str, **data: Any) -> _Result:
-    #     url = f"{self.config.url}api/{api}"
-    #     for k in data:
-    #         if isinstance(data[k], Path):
-    #             data[k] = cast(Path, data[k]).as_posix()
-
-    #     salt = str(time.time())
-    #     hash_val = self.config.api_key + salt
-    #     hash_val = md5(hash_val.encode("utf-8")).hexdigest()
-    #     headers = deepcopy(self.headers)
-    #     headers["X-7685-Salt"] = salt
-    #     headers["X-7685-Hash"] = hash_val
-
-    #     try:
-    #         async with self.session.post(url, json=data, headers=headers) as resp:
-    #             return _Result.model_validate(await resp.json())
-    #     except Exception as e:
-    #         return _Result(status="error", message=f"{e.__class__.__name__}: {e}")
 
     def _get_headers(self) -> Dict[str, str]:
         salt = str(time.time())

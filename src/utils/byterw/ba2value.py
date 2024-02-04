@@ -1,38 +1,26 @@
-# type: ignore
 from base64 import b64decode
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Tuple, Type
+from typing import Callable, Dict, Tuple, Type, List, Set, Any
 
 from pydantic import BaseModel, Field
 
 from .common import VT, ValidType, i2vt
 
 
-def vt2t(vt: VT) -> Type[ValidType]:
-    match vt:
-        case VT.Int:
-            return int
-        case VT.Float:
-            return float
-        case VT.Bool:
-            return bool
-        case VT.Str:
-            return str
-        case VT.Bytes:
-            return bytes
-        case VT.Dict:
-            return dict
-        case VT.List:
-            return list
-        case VT.Set:
-            return set
-        case VT.Datetime:
-            return datetime
-        case VT.Path:
-            return Path
-        case VT.Model:
-            return BaseModel
+__VT2T: Dict[VT, Type[ValidType]] = {
+    VT.Int: int,
+    VT.Float: float,
+    VT.Bool: bool,
+    VT.Str: str,
+    VT.Bytes: bytes,
+    VT.Dict: Dict[Any, Any],
+    VT.List: List[Any],
+    VT.Set: Set[Any],
+    VT.Datetime: datetime,
+    VT.Path: Path,
+    VT.Model: BaseModel,
+}
 
 
 def ba2vt(b: bytearray) -> Tuple[VT, bytearray]:
@@ -42,8 +30,8 @@ def ba2vt(b: bytearray) -> Tuple[VT, bytearray]:
 def ba2int(b: bytearray) -> Tuple[int, bytearray]:
     length = b[0]
     value = 0
-    for i in range(length, 0, -1):
-        value = value * 256 + b[i]
+    for i in b[length:0:-1]:
+        value = (value << 8) + i
     return value, b[length + 1 :]
 
 
@@ -51,8 +39,8 @@ def ba2float(b: bytearray) -> Tuple[float, bytearray]:
     length = b[0]
     precision = b[1]
     value = 0
-    for i in range(length + 1, 1, -1):
-        value = value * 256 + b[i]
+    for i in b[length + 1 : 1 : -1]:
+        value = (value << 8) + i
     return value / (10**precision), b[length + 2 :]
 
 
@@ -75,9 +63,9 @@ def ba2path(b: bytearray) -> Tuple[Path, bytearray]:
     return Path(s), b
 
 
-def ba2dict(b: bytearray) -> Tuple[dict, bytearray]:
+def ba2dict(b: bytearray) -> Tuple[Dict[Any, Any], bytearray]:
     length, b = ba2int(b)
-    parsed = {}
+    parsed: Dict[Any, Any] = {}
 
     for _ in range(length):
         vt, b = ba2vt(b)
@@ -89,9 +77,9 @@ def ba2dict(b: bytearray) -> Tuple[dict, bytearray]:
     return parsed, b
 
 
-def ba2list(b: bytearray) -> Tuple[list, bytearray]:
+def ba2list(b: bytearray) -> Tuple[List[Any], bytearray]:
     length, b = ba2int(b)
-    parsed = []
+    parsed: List[Any] = []
 
     for _ in range(length):
         vt, b = ba2vt(b)
@@ -101,7 +89,7 @@ def ba2list(b: bytearray) -> Tuple[list, bytearray]:
     return parsed, b
 
 
-def ba2set(b: bytearray) -> Tuple[set, bytearray]:
+def ba2set(b: bytearray) -> Tuple[Set[Any], bytearray]:
     l, b = ba2list(b)
     return set(l), b
 
@@ -121,7 +109,7 @@ def ba2model(b: bytearray) -> Tuple[BaseModel, bytearray]:
         field, b = ba2str(b)
         vt, b = ba2vt(b)
         value, b = ByteArray2Value[vt](b)
-        fields[field] = vt2t(vt)
+        fields[field] = __VT2T[vt]
         parsed[field] = value
 
     attrs = {k: Field(default=parsed[k]) for k in fields} | {"__annotations__": fields}
@@ -142,3 +130,7 @@ ByteArray2Value: Dict[VT, Callable[[bytearray], Tuple[ValidType, bytearray]]] = 
     VT.Path: ba2path,
     VT.Model: ba2model,
 }
+
+
+def ba2value(b: bytearray, vt: VT) -> Tuple[ValidType, bytearray]:
+    return ByteArray2Value[vt](b)

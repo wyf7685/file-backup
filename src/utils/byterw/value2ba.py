@@ -1,3 +1,4 @@
+import functools
 import typing
 from base64 import b64encode
 from datetime import datetime
@@ -7,12 +8,13 @@ from typing import Any, Callable, Dict, List, Set, TypeAliasType
 
 from pydantic import BaseModel
 
-from .common import VT
+from .common import VT, ValidType
 
 __GA = (getattr(typing, "_GenericAlias"), getattr(typing, "_SpecialGenericAlias"))
 __VTT = (int, float, str, bytes, dict, list, set, datetime, Path)  # type: ignore
 
 
+@functools.cache
 def t2vt(value: type) -> VT:
     if isinstance(value, __GA):
         value = getattr(value, "__origin__")
@@ -31,23 +33,16 @@ def t2vt(value: type) -> VT:
 
 
 def int2ba(value: int) -> bytearray:
-    # bytelen(1) val(1)*bytelen
     b = bytearray()
     while value:
-        b.append(value % 256)
-        value //= 256
+        b.append(value & 0xFF)
+        value >>= 8
     b.insert(0, len(b))
     return b
 
 
 def float2ba(value: float, precision: int = 10) -> bytearray:
-    # bytelen(1) precision(1) val(1)*bytelen
-    val = round(value * (10**precision))
-    b = bytearray()
-    while val:
-        b.append(val % 256)
-        val //= 256
-    b.insert(0, len(b))
+    b = int2ba(round(value * (10**precision)))
     b.insert(1, precision)
     return b
 
@@ -77,7 +72,6 @@ def path2ba(value: Path) -> bytearray:
 
 
 def dict2ba(value: Dict[Any, Any]) -> bytearray:
-    # dictlen(int) (key+value)*dictlen
     b = bytearray()
     b.extend(int2ba(len(value)))
 
@@ -94,7 +88,6 @@ def dict2ba(value: Dict[Any, Any]) -> bytearray:
 
 
 def list2ba(value: List[Any]) -> bytearray:
-    # listlen(int) val*listlen
     b = bytearray()
     b.extend(int2ba(len(value)))
 
@@ -120,15 +113,14 @@ def model2ba(value: BaseModel) -> bytearray:
     b.extend(str2ba(value.__class__.__name__))
 
     for field in sorted(value.model_fields.keys()):
-        fb = bytearray()
-        info = value.model_fields[field]
-        if info.annotation is None:
+        anno = value.model_fields[field].annotation
+        if anno is None:
             raise ValueError(f"Model {type(value)} field {field} has no annotation")
-        fvt = t2vt(info.annotation)
-        fb.extend(str2ba(field))
-        fb.append(int(fvt))
-        fb.extend(Value2ByteArray[fvt](getattr(value, field)))
-        b.extend(fb)
+
+        vt = t2vt(anno)
+        b.extend(str2ba(field))
+        b.append(int(vt))
+        b.extend(Value2ByteArray[vt](getattr(value, field)))
 
     return b
 
@@ -146,3 +138,7 @@ Value2ByteArray: Dict[VT, Callable[[Any], bytearray]] = {
     VT.Path: path2ba,
     VT.Model: model2ba,
 }
+
+
+def value2ba(value: ValidType) -> bytearray:
+    return Value2ByteArray[t2vt(type(value))](value)
