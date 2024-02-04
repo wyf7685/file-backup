@@ -12,8 +12,8 @@ from .crypt import decrypt
 class ByteReader(object):
     __buffer: bytearray
 
-    def __init__(self, buffer: bytes | bytearray) -> None:
-        self.__buffer = bytearray(decrypt(bytes(buffer)))
+    def __init__(self, buffer: bytes | bytearray, key: str | int | None = None) -> None:
+        self.__buffer = bytearray(decrypt(buffer, key))
 
     def any(self):
         return len(self.__buffer) != 0

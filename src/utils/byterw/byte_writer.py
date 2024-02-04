@@ -22,12 +22,14 @@ from .value2ba import (
 
 class ByteWriter(object):
     __buffer: bytearray
+    __key: str | int | None
 
-    def __init__(self):
+    def __init__(self, key: str | int | None = None):
         self.__buffer = bytearray()
+        self.__key = key
 
     def get(self) -> bytes:
-        return encrypt(bytes(self.__buffer))
+        return encrypt(self.__buffer, self.__key)
 
     def _write(self, value: bytes | bytearray) -> None:
         self.__buffer.extend(value)
