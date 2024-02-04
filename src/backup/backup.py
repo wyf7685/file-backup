@@ -27,14 +27,14 @@ class Backup(object):
                     break
                 except StopOperation as e:
                     # 中止备份
-                    self.logger.warning(f"备份错误: {Style.RED(e)}")
+                    self.logger.warning(f"备份错误: {Style.RED(e, False)}")
                     break
                 except RestartBackup as e:
                     # 重启备份
-                    self.logger.warning(f"重启备份: {Style.RED(e)}")
+                    self.logger.warning(f"重启备份: {Style.RED(e, False)}")
                     self.logger.warning(try_text)
                 except Exception as e:
-                    self.logger.exception(f"未知错误: {Style.RED(e)}")
+                    self.logger.exception(f"未知错误: {Style.RED(e, False)}")
                     self.logger.warning("重启备份...")
                     self.logger.warning(try_text)
                 await asyncio.sleep(1)

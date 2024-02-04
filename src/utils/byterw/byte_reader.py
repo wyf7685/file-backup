@@ -19,9 +19,13 @@ class ByteReader(object):
         return len(self.__buffer) != 0
 
     def _read(self, vt: VT) -> Any:
+        if not self.any():
+            raise ValueError("没有可供读取的内容")
+
         bvt, self.__buffer = ba2vt(self.__buffer)
         if vt != bvt:
             raise TypeError(f"预期读取 {vt}, 获取到 {bvt}")
+
         value, self.__buffer = ByteArray2Value[vt](self.__buffer)
         return value
 

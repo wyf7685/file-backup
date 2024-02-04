@@ -1,14 +1,16 @@
 import typing
+from base64 import b64encode
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Set, TypeAliasType
 from types import UnionType
+from typing import Any, Callable, Dict, List, Set, TypeAliasType
 
 from pydantic import BaseModel
 
 from .common import VT
 
 __GA = (getattr(typing, "_GenericAlias"), getattr(typing, "_SpecialGenericAlias"))
+__VTT = (int, float, str, bytes, dict, list, set, datetime, Path)  # type: ignore
 
 
 def t2vt(value: type) -> VT:
@@ -21,24 +23,8 @@ def t2vt(value: type) -> VT:
 
     if issubclass(value, bool):
         return VT.Bool
-    elif issubclass(value, int):
-        return VT.Int
-    elif issubclass(value, float):
-        return VT.Float
-    elif issubclass(value, str):
-        return VT.Str
-    elif issubclass(value, bytes):
-        return VT.Bytes
-    elif issubclass(value, dict):
-        return VT.Dict
-    elif issubclass(value, list):
-        return VT.List
-    elif issubclass(value, set):
-        return VT.Set
-    elif issubclass(value, datetime):
-        return VT.Datetime
-    elif issubclass(value, Path):
-        return VT.Path
+    elif issubclass(value, __VTT):
+        return getattr(VT, value.__name__.capitalize())
     elif issubclass(value, BaseModel):
         return VT.Model
     raise ValueError(f"{value!r} is not a valid ValueType")
@@ -67,7 +53,7 @@ def float2ba(value: float, precision: int = 10) -> bytearray:
 
 
 def bool2ba(value: bool) -> bytearray:
-    return bytearray(b"0x1" if value else b"0x0")
+    return bytearray(b"\x01" if value else b"\x00")
 
 
 def str2ba(value: str) -> bytearray:
@@ -77,11 +63,14 @@ def str2ba(value: str) -> bytearray:
     b.extend(vb)
     return b
 
+
 def bytes2ba(value: bytes) -> bytearray:
     b = bytearray()
-    b.append(len(value))
+    value = b64encode(value)
+    b.extend(int2ba(len(value)))
     b.extend(value)
     return b
+
 
 def path2ba(value: Path) -> bytearray:
     return str2ba(value.as_posix())
@@ -145,15 +134,15 @@ def model2ba(value: BaseModel) -> bytearray:
 
 
 Value2ByteArray: Dict[VT, Callable[[Any], bytearray]] = {
-    VT.Int:         int2ba,
-    VT.Float:       float2ba,
-    VT.Bool:        bool2ba,
-    VT.Str:         str2ba,
-    VT.Bytes:       bytes2ba,
-    VT.Dict:        dict2ba,
-    VT.List:        list2ba,
-    VT.Set:         set2ba,
-    VT.Datetime:    datetime2ba,
-    VT.Path:        path2ba,
-    VT.Model:       model2ba,
+    VT.Int: int2ba,
+    VT.Float: float2ba,
+    VT.Bool: bool2ba,
+    VT.Str: str2ba,
+    VT.Bytes: bytes2ba,
+    VT.Dict: dict2ba,
+    VT.List: list2ba,
+    VT.Set: set2ba,
+    VT.Datetime: datetime2ba,
+    VT.Path: path2ba,
+    VT.Model: model2ba,
 }

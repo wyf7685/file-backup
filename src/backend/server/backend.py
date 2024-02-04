@@ -1,17 +1,16 @@
 import asyncio
 import time
-from base64 import b64decode, b64encode
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Self, Tuple, cast, override
+from typing import Any, Dict, List, Literal, Self, Tuple, override
 
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
 from src.const import VERSION, StrPath
 from src.const.exceptions import BackendError, StopOperation
-from src.utils import Style, mkdir, run_sync
+from src.utils import ByteReader, ByteWriter, Style, mkdir, run_sync
 
 from ..backend import Backend, BackendResult
 from .config import Config
@@ -22,18 +21,40 @@ HEADERS = {
 }
 
 
-class _Result(BaseModel):
-    status: Literal["success", "error"] = Field()
-    message: str = Field(default="")
-    data: Dict[str, Any] = Field(default_factory=dict)
+# class _Result(BaseModel):
+#     status: Literal["success", "error"] = Field()
+#     message: str = Field(default="")
+#     data: Dict[str, Any] = Field(default_factory=dict)
 
-    @property
-    def success(self):
-        return self.status == "success"
+#     @property
+#     def success(self):
+#         return self.status == "success"
+
+#     @property
+#     def failed(self):
+#         return not self.success
+
+
+class Result(BaseModel):
+    success: bool = Field()
+    message: str = Field(default="")
+    data: List[Any] = Field(default_factory=list)
 
     @property
     def failed(self):
         return not self.success
+
+
+def solve_params(key: str, *data: Any) -> bytes:
+    writer = ByteWriter(key)
+    for value in data:
+        if isinstance(value, Path):
+            writer.write_string(value.as_posix())
+        elif isinstance(value, bytes):
+            writer.write_bytes(value)
+        else:
+            writer.write_string(str(value))
+    return writer.get()
 
 
 class ServerBackend(Backend):
@@ -57,35 +78,60 @@ class ServerBackend(Backend):
             raise StopOperation(f"ServerBackend 状态异常: {res.message}")
         return self
 
-    async def _request(self, api: str, **data: Any) -> _Result:
-        url = f"{self.config.url}api/{api}"
-        for k in data:
-            if isinstance(data[k], Path):
-                data[k] = cast(Path, data[k]).as_posix()
+    # async def _request(self, api: str, **data: Any) -> _Result:
+    #     url = f"{self.config.url}api/{api}"
+    #     for k in data:
+    #         if isinstance(data[k], Path):
+    #             data[k] = cast(Path, data[k]).as_posix()
 
+    #     salt = str(time.time())
+    #     hash_val = self.config.api_key + salt
+    #     hash_val = md5(hash_val.encode("utf-8")).hexdigest()
+    #     headers = deepcopy(self.headers)
+    #     headers["X-7685-Salt"] = salt
+    #     headers["X-7685-Hash"] = hash_val
+
+    #     try:
+    #         async with self.session.post(url, json=data, headers=headers) as resp:
+    #             return _Result.model_validate(await resp.json())
+    #     except Exception as e:
+    #         return _Result(status="error", message=f"{e.__class__.__name__}: {e}")
+
+    def _get_headers(self) -> Dict[str, str]:
         salt = str(time.time())
         hash_val = self.config.api_key + salt
         hash_val = md5(hash_val.encode("utf-8")).hexdigest()
         headers = deepcopy(self.headers)
         headers["X-7685-Salt"] = salt
         headers["X-7685-Hash"] = hash_val
+        return headers
+
+    async def _request(self, api: str, *params: Any) -> Result:
+        url = f"{self.config.url}api/{api}"
+        data = solve_params(self.config.api_key, *params)
+        headers = self._get_headers()
 
         try:
-            async with self.session.post(url, json=data, headers=headers) as resp:
-                return _Result.model_validate(await resp.json())
+            async with self.session.post(url, data=data, headers=headers) as resp:
+                result = ByteReader(await resp.read(), self.config.api_key)
         except Exception as e:
-            return _Result(status="error", message=f"{e.__class__.__name__}: {e}")
+            return Result(success=False, message=f"{e.__class__.__name__}: {e}")
+
+        if not result.read_bool():
+            return Result(success=False, message=result.read_string())
+        data = result.read_list() if result.any() else []
+        return Result(success=True, data=data)
 
     @override
     async def _mkdir(self, path: StrPath) -> None:
-        res = await self._request("mkdir", path=path)
+        res = await self._request("mkdir", path)
         if res.failed:
             self.logger.error(res.message)
             raise BackendError(f"创建文件夹时出错: {res.message}")
 
     @override
     async def _rmdir(self, path: StrPath) -> None:
-        res = await self._request("rmdir", path=path)
+        res = await self._request("rmdir", path)
         if res.failed:
             self.logger.error(res.message)
             raise BackendError(f"删除文件夹时出错: {res.message}")
@@ -94,11 +140,11 @@ class ServerBackend(Backend):
     async def _list_dir(
         self, path: StrPath = "."
     ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
-        res = await self._request("list_dir", path=path)
+        res = await self._request("list_dir", path)
         if res.failed:
             self.logger.error(res.message)
             return BackendError(f"列出文件夹时出错: {res.message}"), []
-        return None, sorted(res.data["list"])
+        return None, sorted(res.data)
 
     @override
     async def _get_file(
@@ -112,11 +158,10 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                res = await self._request("get_file", path=remote_fp)
+                res = await self._request("get_file", remote_fp)
                 if res.success:
-                    data = b64decode(res.data["file"])
                     with local_fp.open("wb") as f:
-                        await run_sync(f.write)(data)
+                        await run_sync(f.write)(res.data[0])
                     return
                 err = res.message
                 break
@@ -146,11 +191,7 @@ class ServerBackend(Backend):
             try:
                 with local_fp.open("rb+") as f:
                     data = await run_sync(f.read)()
-                res = await self._request(
-                    "put_file",
-                    path=remote_fp,
-                    file=b64encode(data).decode("utf-8"),
-                )
+                res = await self._request("put_file", remote_fp, data)
                 if res.success:
                     return
                 err = res.message

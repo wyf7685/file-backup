@@ -1,7 +1,8 @@
 # type: ignore
+from base64 import b64decode
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Type, Tuple
+from typing import Callable, Dict, Tuple, Type
 
 from pydantic import BaseModel, Field
 
@@ -66,7 +67,7 @@ def ba2str(b: bytearray) -> Tuple[str, bytearray]:
 
 def ba2bytes(b: bytearray) -> Tuple[bytes, bytearray]:
     length, b = ba2int(b)
-    return bytes(b[:length]), b[length:]
+    return b64decode(b[:length]), b[length:]
 
 
 def ba2path(b: bytearray) -> Tuple[Path, bytearray]:
