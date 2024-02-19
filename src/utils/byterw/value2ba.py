@@ -3,7 +3,7 @@ import typing
 from base64 import b64encode
 from datetime import datetime
 from pathlib import Path
-from types import UnionType
+from types import UnionType, NoneType
 from typing import Any, Callable, Dict, List, Set, TypeAliasType
 
 from pydantic import BaseModel
@@ -16,6 +16,9 @@ __VTT = (int, float, str, bytes, dict, list, set, datetime, Path)  # type: ignor
 
 @functools.cache
 def t2vt(value: type) -> VT:
+    if value is None or value is NoneType:
+        return VT.Null
+
     if isinstance(value, __GA):
         value = getattr(value, "__origin__")
     elif isinstance(value, UnionType):
@@ -32,12 +35,17 @@ def t2vt(value: type) -> VT:
     raise ValueError(f"{value!r} is not a valid ValueType")
 
 
+def none2ba(_: None) -> bytearray:
+    return bytearray([0])
+
+
 def int2ba(value: int) -> bytearray:
-    b = bytearray()
+    b = bytearray([value >= 0])
+    value = abs(value)
     while value:
         b.append(value & 0xFF)
         value >>= 8
-    b.insert(0, len(b))
+    b.insert(0, len(b) - 1)
     return b
 
 
@@ -126,6 +134,7 @@ def model2ba(value: BaseModel) -> bytearray:
 
 
 Value2ByteArray: Dict[VT, Callable[[Any], bytearray]] = {
+    VT.Null: none2ba,
     VT.Int: int2ba,
     VT.Float: float2ba,
     VT.Bool: bool2ba,

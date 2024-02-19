@@ -20,8 +20,7 @@ class ByteReader(object):
 
     def _read_with[T](self, call: Callable[[memoryview], Tuple[T, memoryview]]) -> T:
         value, buffer = call(self.__buffer)
-        self.__buffer.release()
-        self.__buffer = buffer
+        _, self.__buffer = self.__buffer.release(), buffer
         return value
 
     def _read(self, vt: VT) -> Any:

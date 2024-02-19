@@ -2,10 +2,12 @@ from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
 from typing import Any, Dict, List, Set, Union
+from types import NoneType
 
 from pydantic import BaseModel
 
 type ValidType = Union[
+    NoneType,
     int,
     float,
     bool,
@@ -22,20 +24,22 @@ type ValidType = Union[
 
 
 class VT(IntEnum):
-    Int = 0
-    Float = 1
-    Bool = 2
-    Str = 3
-    Bytes = 4
-    Dict = 5
-    List = 6
-    Set = 7
-    Datetime = 8
-    Path = 9
-    Model = 10
+    Null = 0
+    Int = 1
+    Float = 2
+    Bool = 3
+    Str = 4
+    Bytes = 5
+    Dict = 6
+    List = 7
+    Set = 8
+    Datetime = 9
+    Path = 10
+    Model = 11
 
 
 __I2VT: List[VT] = [
+    VT.Null,
     VT.Int,
     VT.Float,
     VT.Bool,
@@ -51,6 +55,6 @@ __I2VT: List[VT] = [
 
 
 def i2vt(i: int) -> VT:
-    if 0 <= i <= 10:
+    if 0 <= i <= 11:
         return __I2VT[i]
     raise ValueError(f"不存在ID为 {i} 的VT")

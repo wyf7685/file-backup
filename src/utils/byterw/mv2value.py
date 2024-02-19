@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 from .common import VT, ValidType, i2vt
 
 
-__VT2T: Dict[VT, Type[ValidType]] = {
+__VT2T: Dict[VT, Type[ValidType] | None] = {
+    VT.Null: None,
     VT.Int: int,
     VT.Float: float,
     VT.Bool: bool,
@@ -27,21 +28,27 @@ def mv2vt(m: memoryview) -> Tuple[VT, memoryview]:
     return i2vt(m[0]), m[1:]
 
 
+def mv2none(m: memoryview) -> Tuple[None, memoryview]:
+    return None, m[1:]
+
+
 def mv2int(m: memoryview) -> Tuple[int, memoryview]:
     length = m[0]
+    sig = 1 if m[1] else -1
     value = 0
-    for i in m[length:0:-1]:
+    for i in m[length + 1 : 1 : -1]:
         value = (value << 8) + i
-    return value, m[length + 1 :]
+    return sig * value, m[length + 2 :]
 
 
 def mv2float(m: memoryview) -> Tuple[float, memoryview]:
     length = m[0]
     precision = m[1]
+    sig = 1 if m[2] else -1
     value = 0
-    for i in m[length + 1 : 1 : -1]:
+    for i in m[length + 2 : 2 : -1]:
         value = (value << 8) + i
-    return value / (10**precision), m[length + 2 :]
+    return sig * value / (10**precision), m[length + 3 :]
 
 
 def mv2bool(m: memoryview) -> Tuple[bool, memoryview]:
@@ -102,7 +109,7 @@ def mv2datetime(m: memoryview) -> Tuple[datetime, memoryview]:
 def mv2model(m: memoryview) -> Tuple[BaseModel, memoryview]:
     length, m = mv2int(m)
     model_name, m = mv2str(m)
-    fields: Dict[str, Type[ValidType]] = {}
+    fields: Dict[str, Type[ValidType] | None] = {}
     parsed: Dict[str, ValidType] = {}
 
     for _ in range(length):
@@ -118,6 +125,7 @@ def mv2model(m: memoryview) -> Tuple[BaseModel, memoryview]:
 
 
 MemoryView2Value: Dict[VT, Callable[[memoryview], Tuple[ValidType, memoryview]]] = {
+    VT.Null: mv2none,
     VT.Int: mv2int,
     VT.Float: mv2float,
     VT.Bool: mv2bool,
