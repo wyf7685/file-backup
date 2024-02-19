@@ -1,33 +1,38 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Set, Type
+from typing import Any, Dict, List, Set, Type, Callable, Tuple
 
 from pydantic import BaseModel
 
-from .ba2value import ByteArray2Value, ba2vt
+from .mv2value import MemoryView2Value, mv2vt
 from .common import VT, ValidType
 from .crypt import decrypt
 
 
 class ByteReader(object):
-    __buffer: bytearray
+    __buffer: memoryview
 
     def __init__(self, buffer: bytes | bytearray, key: str | int | None = None) -> None:
-        self.__buffer = bytearray(decrypt(buffer, key))
+        self.__buffer = memoryview(decrypt(buffer, key))
 
     def any(self):
         return len(self.__buffer) != 0
+
+    def _read_with[T](self, call: Callable[[memoryview], Tuple[T, memoryview]]) -> T:
+        value, buffer = call(self.__buffer)
+        self.__buffer.release()
+        self.__buffer = buffer
+        return value
 
     def _read(self, vt: VT) -> Any:
         if not self.any():
             raise ValueError("没有可供读取的内容")
 
-        bvt, self.__buffer = ba2vt(self.__buffer)
+        bvt = self._read_with(mv2vt)
         if vt != bvt:
             raise TypeError(f"预期读取 {vt}, 获取到 {bvt}")
 
-        value, self.__buffer = ByteArray2Value[vt](self.__buffer)
-        return value
+        return self._read_with(MemoryView2Value[vt])
 
     def read_int(self) -> int:
         return self._read(VT.Int)
@@ -66,6 +71,5 @@ class ByteReader(object):
         if not self.any():
             raise ValueError("没有可供读取的内容")
 
-        vt, self.__buffer = ba2vt(self.__buffer)
-        value, self.__buffer = ByteArray2Value[vt](self.__buffer)
-        return value
+        vt = self._read_with(mv2vt)
+        return self._read_with(MemoryView2Value[vt])

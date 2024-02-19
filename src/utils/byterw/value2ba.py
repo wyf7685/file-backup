@@ -48,7 +48,7 @@ def float2ba(value: float, precision: int = 10) -> bytearray:
 
 
 def bool2ba(value: bool) -> bytearray:
-    return bytearray(b"\x01" if value else b"\x00")
+    return bytearray([value])
 
 
 def str2ba(value: str) -> bytearray:

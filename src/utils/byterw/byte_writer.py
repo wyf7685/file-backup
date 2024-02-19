@@ -37,9 +37,7 @@ class ByteWriter(object):
         self.__buffer.extend(value)
 
     def _write_sign(self, value: VT) -> None:
-        b = bytearray()
-        b.append(int(value))
-        self._write(b)
+        self.__buffer.append(int(value))
 
     def write_int(self, value: int) -> Self:
         self._write_sign(VT.Int)

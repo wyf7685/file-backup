@@ -5,6 +5,21 @@ from typing import Any, Dict, List, Set, Union
 
 from pydantic import BaseModel
 
+type ValidType = Union[
+    int,
+    float,
+    bool,
+    str,
+    bytes,
+    str,
+    Dict[Any, Any],
+    List[Any],
+    Set[Any],
+    datetime,
+    Path,
+    BaseModel,
+]
+
 
 class VT(IntEnum):
     Int = 0
@@ -39,19 +54,3 @@ def i2vt(i: int) -> VT:
     if 0 <= i <= 10:
         return __I2VT[i]
     raise ValueError(f"不存在ID为 {i} 的VT")
-
-
-type ValidType = Union[
-    int,
-    float,
-    bool,
-    str,
-    bytes,
-    str,
-    Dict[Any, Any],
-    List[Any],
-    Set[Any],
-    datetime,
-    Path,
-    BaseModel,
-]
