@@ -16,7 +16,7 @@ __VTT = (int, float, str, bytes, dict, list, set, datetime, Path)  # type: ignor
 
 @functools.cache
 def t2vt(value: type) -> VT:
-    if value is None or value is NoneType:
+    if value is NoneType:
         return VT.Null
 
     if isinstance(value, __GA):

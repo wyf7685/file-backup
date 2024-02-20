@@ -1,34 +1,62 @@
 import base64
+import ctypes
 import functools
 import random
 import string
+from pathlib import Path
+import typing
 
-__basic_map = string.ascii_uppercase + string.ascii_lowercase + string.digits + "+/="
+LIB_PATH = str(Path.cwd() / "lib/crypt.dll")
+LIB = ctypes.CDLL(LIB_PATH)
+
+lib_encrypt = LIB.encrypt
+lib_encrypt.argtypes = [
+    ctypes.c_char_p,
+    ctypes.POINTER(ctypes.c_ubyte),
+    ctypes.c_uint64,
+]
+lib_encrypt.restype = ctypes.POINTER(ctypes.c_ubyte)
+
+lib_decrypt = LIB.decrypt
+lib_decrypt.argtypes = [
+    ctypes.c_char_p,
+    ctypes.POINTER(ctypes.c_ubyte),
+    ctypes.c_uint64,
+]
+lib_decrypt.restype = ctypes.POINTER(ctypes.c_ubyte)
+
+lib_free = LIB.myfree
+lib_free.argtypes = [ctypes.c_void_p]
+lib_free.restype = None
+
+
+def _process(
+    lib_call: typing.Callable[[bytes, ctypes.Array[ctypes.c_ubyte], int], typing.Any],
+    charset: str,
+    data: bytes | bytearray,
+):
+    d = (ctypes.c_ubyte * len(data))(*data)
+    ptr = lib_call(charset.encode("utf-8"), d, len(data))
+    result = bytes(
+        ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ubyte * len(data))).contents
+    )
+    lib_free(ptr)
+    return result
 
 
 @functools.cache
-def __get_map(key: str | int) -> str:
-    m = list(__basic_map[:-1])
+def get_charset(key: str | int) -> str:
+    m = list(string.ascii_uppercase + string.ascii_lowercase + string.digits + "+/")
     random.Random(key).shuffle(m)
     return "".join(m) + "="
 
 
-def __offset(data: bytes | bytearray, offset: int) -> bytes:
-    buffer = bytearray(data)
-    for i in range(len(buffer)):
-        buffer[i] = (buffer[i] + offset) % 256
-    return bytes(buffer)
-
-
 def encrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
-    mapping = __get_map(key or 7685)
-    b64 = base64.b64encode(data).decode("utf-8")
-    b64 = "".join(mapping[__basic_map.index(i)] for i in b64)
-    return __offset(b64.encode("utf-8"), -7685)
+    b64 = base64.b64encode(data)
+    charset = get_charset(key or 7685)
+    return _process(lib_encrypt, charset, b64)
 
-
-def decrypt(b64b: bytes | bytearray, key: str | int | None = None) -> bytes:
-    mapping = __get_map(key or 7685)
-    b64 = __offset(b64b, 7685).decode("utf-8")
-    b64 = "".join(__basic_map[mapping.index(i)] for i in b64)
+def decrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
+    charset = get_charset(key or 7685)
+    b64 = _process(lib_decrypt, charset, data)
     return base64.b64decode(b64)

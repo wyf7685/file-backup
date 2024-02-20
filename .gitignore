@@ -15,6 +15,4 @@ logs/
 test/
 *.exe
 test.py
-
-# Why do we need this?
-!src/backup/
+lib/

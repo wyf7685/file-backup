@@ -6,7 +6,7 @@ from subprocess import PIPE, Popen
 NAME = "file-backup"
 
 
-def popen(args):
+def popen(args: str):
     return Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
 
