@@ -1,12 +1,14 @@
 import base64
 import ctypes
 import functools
+import sys
 import random
 import string
-from pathlib import Path
 import typing
+from pathlib import Path
 
-LIB_PATH = str(Path.cwd() / "lib/crypt.dll")
+LIB_NAME = f"crypt.{"dll" if sys.platform == "win32" else "so"}"
+LIB_PATH = str(Path.cwd() / "lib" / LIB_NAME)
 LIB = ctypes.CDLL(LIB_PATH)
 
 lib_encrypt = LIB.encrypt
@@ -55,6 +57,7 @@ def encrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
     b64 = base64.b64encode(data)
     charset = get_charset(key or 7685)
     return _process(lib_encrypt, charset, b64)
+
 
 def decrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
     charset = get_charset(key or 7685)
