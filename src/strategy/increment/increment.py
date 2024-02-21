@@ -97,22 +97,23 @@ class IncrementStrategy(Strategy):
         res.extend(("del", v.path) for v in remote.values())
         return [BackupUpdate(type=t, path=p, md5=md5_cache.get(p, "")) for t, p in res]
 
-    def cache_update(self, update: List[BackupUpdate]) -> Path:
+    async def cache_update(self, update: List[BackupUpdate]) -> Path:
         cache = self.cache(get_uuid())
+        copyfile = run_sync(shutil.copyfile)
 
         for upd in update:
             if upd.type == "dir":
                 mkdir(cache / upd.path)
             elif upd.type == "file":
                 mkdir(cache / upd.path.parent)
-                shutil.copyfile(self.local / upd.path, cache / upd.path)
+                await copyfile(self.local / upd.path, cache / upd.path)
 
         return cache
 
-    async def compress_and_upload(self, uuid: str, cache: Path):
-        target = self.remote / uuid
+    async def compress_and_upload(self, cache: Path):
+        target = self.remote / self.uuid
         await self.client.mkdir(target)
-        password = compress_password(uuid)
+        password = compress_password(self.uuid)
         archive_dir = self.cache("archive")
 
         self.logger.debug("开始压缩待备份文件...")
@@ -127,7 +128,7 @@ class IncrementStrategy(Strategy):
         self.logger.debug(
             f"本地备份文件分卷压缩包目录: {Style.PATH_DEBUG(archive_dir)}"
         )
-        self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
+        self.logger.info(f"[{Style.CYAN(self.uuid)}] 正在上传...")
 
         async def upload(archive: Path) -> None:
             if err := await self.client.put_file(archive, target / archive.name):
@@ -146,8 +147,6 @@ class IncrementStrategy(Strategy):
     @override
     async def _make_backup(self) -> None:
         self.check_local()
-        uuid = get_uuid()
-        self.check_uuid(uuid)
 
         # 获取本次需要备份的文件
         self.logger.info("正在比对本地待备份文件...")
@@ -157,15 +156,15 @@ class IncrementStrategy(Strategy):
             return
 
         # 准备备份
-        target = self.remote / uuid
+        target = self.remote / self.uuid
         self.logger.info(f"开始增量备份: {Style.PATH(self.local)}")
-        self.logger.info(f"备份uuid: [{Style.CYAN(uuid)}]")
+        self.logger.info(f"备份uuid: [{Style.CYAN(self.uuid)}]")
 
         # 复制文件到缓存目录
-        cache = self.cache_update(update)
+        cache = await self.cache_update(update)
 
         # 压缩文件并上传
-        await self.compress_and_upload(uuid, cache)
+        await self.compress_and_upload(cache)
 
         # 生成本次备份清单
         upd_cache = cache / "update.7685"
@@ -174,8 +173,8 @@ class IncrementStrategy(Strategy):
             raise StopBackup(f"上传备份清单时出现错误: {err}") from err
 
         # 更新备份记录
-        await self.add_record(uuid)
-        self.logger.success(f"[{Style.CYAN(uuid)}] 备份完成!")
+        await self.add_record()
+        self.logger.success(f"[{Style.CYAN(self.uuid)}] 备份完成!")
         self.logger.success(f"本次备份更新 {Style.YELLOW(len(update))} 个项目")
 
     async def get_updates(

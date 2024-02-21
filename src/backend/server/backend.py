@@ -13,13 +13,14 @@ from src.const.exceptions import BackendError, StopOperation
 from src.utils import ByteReader, ByteWriter, Style, mkdir, run_sync
 
 from ..backend import Backend, BackendResult
+from ..config import parse_config
 from .config import Config
 
 HEADERS = {
     "Accept": "application/json",
     "User-Agent": f"file-backup/{VERSION} wyf7685/7.6.8.5",
 }
-
+config = parse_config(Config)
 
 class Result(BaseModel):
     success: bool = Field()
@@ -44,7 +45,7 @@ def solve_params(key: str, *data: Any) -> bytes:
 
 
 class ServerBackend(Backend):
-    config: Config
+    # config: Config
     session: ClientSession
     headers: Dict[str, str]
 
@@ -52,13 +53,13 @@ class ServerBackend(Backend):
     @classmethod
     async def create(cls) -> Self:
         self = cls()
-        self.config = self._parse_config(Config)
+        # self.config = self._parse_config(Config)
         self.headers = deepcopy(HEADERS)
-        self.headers["X-7685-Token"] = self.config.token
+        self.headers["X-7685-Token"] = config.token
         self.session = ClientSession()
 
-        if not self.config.url.endswith("/"):
-            self.config.url += "/"
+        if not config.url.endswith("/"):
+            config.url += "/"
         res = await self._request("status")
         if res.failed:
             raise StopOperation(f"ServerBackend 状态异常: {res.message}")
@@ -66,7 +67,7 @@ class ServerBackend(Backend):
 
     def _get_headers(self) -> Dict[str, str]:
         salt = str(time.time())
-        hash_val = self.config.api_key + salt
+        hash_val = config.api_key + salt
         hash_val = md5(hash_val.encode("utf-8")).hexdigest()
         headers = deepcopy(self.headers)
         headers["X-7685-Salt"] = salt
@@ -74,13 +75,13 @@ class ServerBackend(Backend):
         return headers
 
     async def _request(self, api: str, *params: Any) -> Result:
-        url = f"{self.config.url}api/{api}"
-        data = solve_params(self.config.api_key, *params)
+        url = f"{config.url}api/{api}"
+        data = solve_params(config.api_key, *params)
         headers = self._get_headers()
 
         try:
             async with self.session.post(url, data=data, headers=headers) as resp:
-                result = ByteReader(await resp.read(), self.config.api_key)
+                result = ByteReader(await resp.read(), config.api_key)
         except Exception as e:
             return Result(success=False, message=f"{e.__class__.__name__}: {e}")
 

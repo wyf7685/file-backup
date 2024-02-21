@@ -3,7 +3,7 @@ from typing import override
 
 from src.const.exceptions import StopRecovery, StopBackup
 from src.models import BackupRecord
-from src.utils import Style, compress_password, get_uuid, mkdir, pack_7zip, unpack_7zip
+from src.utils import Style, compress_password, mkdir, pack_7zip, unpack_7zip
 
 from ..strategy import Strategy
 
@@ -14,25 +14,23 @@ class CompressStrategy(Strategy):
     @override
     async def _make_backup(self) -> None:
         self.check_local()
-        uuid = get_uuid()
-        self.check_uuid(uuid)
 
         # 准备备份
-        target = self.remote / uuid
+        target = self.remote / self.uuid
         await self.client.mkdir(target)
         self.logger.info(f"开始压缩备份: {Style.PATH(self.local)}")
-        self.logger.info(f"备份uuid: [{Style.CYAN(uuid)}]")
+        self.logger.info(f"备份uuid: [{Style.CYAN(self.uuid)}]")
 
         # 压缩后上传
-        password = compress_password(uuid)
-        archive = await pack_7zip(self.cache(f"{uuid}.7z"), self.local, password)
-        self.logger.info(f"[{Style.CYAN(uuid)}] 正在上传...")
+        password = compress_password(self.uuid)
+        archive = await pack_7zip(self.cache(f"{self.uuid}.7z"), self.local, password)
+        self.logger.info(f"[{Style.CYAN(self.uuid)}] 正在上传...")
         if err := await self.client.put_file(archive, target / "backup.7z"):
             raise StopBackup(f"上传备份压缩包时出错: {err}") from err
 
         # 更新备份记录
-        await self.add_record(uuid)
-        self.logger.success(f"[{Style.CYAN(uuid)}] 备份完成!")
+        await self.add_record()
+        self.logger.success(f"[{Style.CYAN(self.uuid)}] 备份完成!")
 
     @override
     async def _make_recovery(self, record: BackupRecord) -> Path:

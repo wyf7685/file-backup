@@ -47,6 +47,7 @@ class Strategy(AbstractStrategy):
     __strategy_name__: str = "Strategy"
     __prepared: bool
     __cache: Path
+    uuid: str
     client: Backend
     config: BackupConfig
     record: List[BackupRecord]
@@ -93,7 +94,7 @@ class Strategy(AbstractStrategy):
         cache_fp.unlink()
         self.record = ByteReader(data).read_list()
 
-    async def add_record(self, uuid: str) -> None:
+    async def add_record(self) -> None:
         """创建一个新备份
 
         Args:
@@ -106,7 +107,7 @@ class Strategy(AbstractStrategy):
         now = datetime.now()
         self.record.append(
             BackupRecord(
-                uuid=uuid,
+                uuid=self.uuid,
                 timestamp=now.timestamp(),
                 timestr=now.strftime("%Y-%m-%d %H:%M:%S"),
             )
@@ -127,9 +128,11 @@ class Strategy(AbstractStrategy):
         if self.config.mode == "increment" and self.local.is_file():
             raise StopBackup("increment模式的路径不能是单个文件, 请使用compress模式")
 
-    def check_uuid(self, uuid: str) -> None:
+    def get_uuid(self) -> str:
+        uuid = get_uuid()
         if [i for i in self.record if i.uuid == uuid]:
             raise RestartBackup("uuid重复")
+        return uuid
 
     async def prepare(self, *, miss_ok: bool = False) -> None:
         if self.__prepared:
@@ -163,6 +166,7 @@ class Strategy(AbstractStrategy):
     @override
     async def make_backup(self) -> None:
         await self.prepare(miss_ok=True)
+        self.uuid = self.get_uuid()
         try:
             await self._make_backup()
         except Exception as err:

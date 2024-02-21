@@ -7,7 +7,10 @@ from src.const.exceptions import BackendError
 from src.utils import Style, mkdir, run_sync
 
 from ..backend import Backend, BackendResult
+from ..config import parse_config
 from .config import Config
+
+config = parse_config(Config)
 
 
 class LocalBackend(Backend):
@@ -17,7 +20,7 @@ class LocalBackend(Backend):
     @override
     async def create(cls) -> Self:
         self = cls()
-        self.root = mkdir(self._parse_config(Config).storage)
+        self.root = mkdir(config.storage)
         return self
 
     @override
