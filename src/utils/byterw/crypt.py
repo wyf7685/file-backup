@@ -62,9 +62,9 @@ def get_charset(key: str | int | None = None) -> str:
     return "".join(m) + "="
 
 
-def encrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
+def encrypt(data: bytes | bytearray, *, key: str | int | None = None) -> bytes:
     return CLIB.encrypt(get_charset(key), base64.b64encode(data))
 
 
-def decrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
+def decrypt(data: bytes | bytearray, *, key: str | int | None = None) -> bytes:
     return base64.b64decode(CLIB.decrypt(get_charset(key), data))

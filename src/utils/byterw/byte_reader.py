@@ -13,7 +13,7 @@ class ByteReader(object):
     __buffer: memoryview
 
     def __init__(self, buffer: bytes | bytearray, key: str | int | None = None) -> None:
-        self.__buffer = memoryview(decrypt(buffer, key))
+        self.__buffer = memoryview(decrypt(buffer, key=key))
 
     def any(self):
         return len(self.__buffer) != 0
@@ -29,7 +29,7 @@ class ByteReader(object):
 
         bvt = self._read_with(mv2vt)
         if vt != bvt:
-            raise TypeError(f"预期读取 {vt}, 获取到 {bvt}")
+            raise TypeError(f"预期读取 {vt!r}, 获取到 {bvt!r}")
 
         return self._read_with(MemoryView2Value[vt])
 

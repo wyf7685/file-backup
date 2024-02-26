@@ -52,9 +52,3 @@ __I2VT: List[VT] = [
     VT.Path,
     VT.Model,
 ]
-
-
-def i2vt(i: int) -> VT:
-    if 0 <= i <= 11:
-        return __I2VT[i]
-    raise ValueError(f"不存在ID为 {i} 的VT")

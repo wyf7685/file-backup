@@ -22,6 +22,7 @@ HEADERS = {
     "User-Agent": f"file-backup/{VERSION} wyf7685/7.6.8.5",
     "X-7685-Token": config.token,
 }
+MULTIPART_SIZE = 4 * 1024 * 1024
 
 
 class Result(BaseModel):
@@ -39,8 +40,12 @@ def solve_params(key: str, *data: Any) -> bytes:
     for value in data:
         if isinstance(value, Path):
             writer.write(value.as_posix())
-        elif isinstance(value, bytes):
+        elif isinstance(value, (bytes, bool, int, float)):
             writer.write(value)
+        elif isinstance(value,memoryview):
+            writer.write(bytes(value))
+        elif isinstance(value, list):
+            writer.write(value)  # type: ignore
         else:
             writer.write(str(value))
     return writer.get()
@@ -59,7 +64,7 @@ class ServerBackend(Backend):
             config.url += "/"
         res = await self._request("status")
         if res.failed:
-            raise StopOperation(f"ServerBackend 状态异常: {res.message}")
+            raise StopOperation(f"ServerBackend 状态异常: {res.message!r}")
         return self
 
     def _get_headers(self) -> Dict[str, str]:
@@ -84,8 +89,10 @@ class ServerBackend(Backend):
 
         if not result.read_bool():
             return Result(success=False, message=result.read_string())
-        data = result.read_list() if result.any() else []
-        return Result(success=True, data=data)
+        received: List[Any] = []
+        while result.any():
+            received.append(result.read())
+        return Result(success=True, data=received)
 
     @override
     async def _mkdir(self, path: StrPath) -> None:
@@ -109,7 +116,7 @@ class ServerBackend(Backend):
         if res.failed:
             self.logger.error(res.message)
             return BackendError(f"列出文件夹时出错: {res.message}"), []
-        return None, sorted(res.data)
+        return None, sorted(res.data[0])
 
     @override
     async def _get_file(
@@ -123,13 +130,10 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                res = await self._request("get_file", remote_fp)
-                if res.success:
-                    with local_fp.open("wb") as f:
-                        await run_sync(f.write)(res.data[0])
-                    return
-                err = res.message
-                break
+                await self.__get_multipart(local_fp, remote_fp)
+                return
+            except BackendError as e:
+                err = e.msg
             except Exception as e:
                 err = e
         msg = f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}"
@@ -154,13 +158,10 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                with local_fp.open("rb+") as f:
-                    data = await run_sync(f.read)()
-                res = await self._request("put_file", remote_fp, data)
-                if res.success:
-                    return
-                err = res.message
-                break
+                await self.__put_multipart(local_fp, remote_fp)
+                return
+            except BackendError as e:
+                err = e.msg
             except Exception as e:
                 err = e
         msg = f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}"
@@ -214,3 +215,57 @@ class ServerBackend(Backend):
 
     def __del__(self):
         asyncio.create_task(self.session.close())
+
+    async def __get_prepare(self, remote_fp: Path) -> Tuple[str, int]:
+        result = await self._request("get_file/prepare", remote_fp)
+        if result.failed:
+            raise BackendError(result.message)
+        return result.data[0], result.data[1]
+
+    async def __get_getpart(self, uuid: str, seq: int) -> bytes:
+        result = await self._request("get_file/getpart", uuid, seq)
+        if result.failed:
+            raise BackendError(result.message)
+        return result.data[0]
+
+    async def __get_multipart(self, local_fp: Path, remote_fp: Path) -> None:
+        uuid, seqs = await self.__get_prepare(remote_fp)
+        with local_fp.open("wb") as file:
+            write = run_sync(file.write)
+            for seq in range(seqs):
+                block = await self.__get_getpart(uuid, seq)
+                await write(block)
+
+    async def __put_prepare(self, block_md5: List[str], remote_fp: Path) -> str:
+        result = await self._request("put_file/prepare", block_md5, remote_fp)
+        if result.failed:
+            raise BackendError(result.message)
+        return result.data[0]
+
+    async def __put_putpart(self, uuid: str, seq: int, part: memoryview):
+        result = await self._request("put_file/putpart", uuid, seq, part)
+        if result.failed:
+            raise BackendError(result.message)
+
+    async def __put_finish(self, uuid: str):
+        result = await self._request("put_file/finish", uuid)
+        if result.failed:
+            raise BackendError(result.message)
+
+    async def __put_multipart(self, local_fp: Path, remote_fp: Path):
+        data = await run_sync(local_fp.read_bytes)()
+        blocks: List[memoryview] = []
+        idx = 0
+        while idx < len(data):
+            blocks.append(memoryview(data[idx : idx + MULTIPART_SIZE]).toreadonly())
+            idx += MULTIPART_SIZE
+
+        uuid = await self.__put_prepare(
+            [md5(i).hexdigest() for i in blocks],
+            remote_fp,
+        )
+
+        for seq, block in enumerate(blocks):
+            await self.__put_putpart(uuid, seq, block)
+
+        await self.__put_finish(uuid)

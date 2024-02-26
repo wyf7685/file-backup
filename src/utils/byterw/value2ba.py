@@ -1,4 +1,5 @@
 import functools
+import math
 import typing
 from base64 import b64encode
 from datetime import datetime
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 from .common import VT, ValidType
 
 __GA = (getattr(typing, "_GenericAlias"), getattr(typing, "_SpecialGenericAlias"))
-__VTT = (int, float, str, bytes, dict, list, set, datetime, Path)  # type: ignore
+__VTT = (int, float, str, bytes, dict, list, set, datetime)  # type: ignore
 
 
 @functools.cache
@@ -28,6 +29,8 @@ def t2vt(value: type) -> VT:
 
     if issubclass(value, bool):
         return VT.Bool
+    elif issubclass(value, Path):
+        return VT.Path
     elif issubclass(value, __VTT):
         return getattr(VT, value.__name__.capitalize())
     elif issubclass(value, BaseModel):
@@ -40,12 +43,9 @@ def none2ba(_: None) -> bytearray:
 
 
 def int2ba(value: int) -> bytearray:
-    b = bytearray([value >= 0])
-    value = abs(value)
-    while value:
-        b.append(value & 0xFF)
-        value >>= 8
-    b.insert(0, len(b) - 1)
+    length = math.ceil(value.bit_length() / 8) + 1
+    b = bytearray(value.to_bytes(length, signed=True))
+    b.insert(0, length)
     return b
 
 
@@ -85,11 +85,11 @@ def dict2ba(value: Dict[Any, Any]) -> bytearray:
 
     for k in sorted(value.keys()):
         kt = t2vt(type(k))
-        b.append(int(kt))
+        b.append(kt.value)
         b.extend(Value2ByteArray[kt](k))
         v = value[k]
         vt = t2vt(type(v))
-        b.append(int(vt))
+        b.append(vt.value)
         b.extend(Value2ByteArray[vt](v))
 
     return b
@@ -101,7 +101,7 @@ def list2ba(value: List[Any]) -> bytearray:
 
     for v in value:
         vt = t2vt(type(v))
-        b.append(int(vt))
+        b.append(vt.value)
         b.extend(Value2ByteArray[vt](v))
 
     return b
@@ -127,7 +127,7 @@ def model2ba(value: BaseModel) -> bytearray:
 
         vt = t2vt(anno)
         b.extend(str2ba(field))
-        b.append(int(vt))
+        b.append(vt.value)
         b.extend(Value2ByteArray[vt](getattr(value, field)))
 
     return b

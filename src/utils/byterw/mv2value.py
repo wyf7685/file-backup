@@ -5,7 +5,7 @@ from typing import Callable, Dict, Tuple, Type, List, Set, Any
 
 from pydantic import BaseModel, Field
 
-from .common import VT, ValidType, i2vt
+from .common import VT, ValidType
 
 
 __VT2T: Dict[VT, Type[ValidType] | None] = {
@@ -25,7 +25,7 @@ __VT2T: Dict[VT, Type[ValidType] | None] = {
 
 
 def mv2vt(m: memoryview) -> Tuple[VT, memoryview]:
-    return i2vt(m[0]), m[1:]
+    return VT.from_bytes(m[:1]), m[1:]
 
 
 def mv2none(m: memoryview) -> Tuple[None, memoryview]:
@@ -34,21 +34,13 @@ def mv2none(m: memoryview) -> Tuple[None, memoryview]:
 
 def mv2int(m: memoryview) -> Tuple[int, memoryview]:
     length = m[0]
-    sig = 1 if m[1] else -1
-    value = 0
-    for i in m[length + 1 : 1 : -1]:
-        value = (value << 8) + i
-    return sig * value, m[length + 2 :]
+    return int.from_bytes(m[1 : length + 1], signed=True), m[length + 1 :]
 
 
 def mv2float(m: memoryview) -> Tuple[float, memoryview]:
-    length = m[0]
-    precision = m[1]
-    sig = 1 if m[2] else -1
-    value = 0
-    for i in m[length + 2 : 2 : -1]:
-        value = (value << 8) + i
-    return sig * value / (10**precision), m[length + 3 :]
+    length, precision = m[:2]
+    value = int.from_bytes(m[2 : length + 2], signed=True)
+    return value / (10**precision), m[length + 2 :]
 
 
 def mv2bool(m: memoryview) -> Tuple[bool, memoryview]:
@@ -66,8 +58,8 @@ def mv2bytes(m: memoryview) -> Tuple[bytes, memoryview]:
 
 
 def mv2path(m: memoryview) -> Tuple[Path, memoryview]:
-    s, m = mv2str(m)
-    return Path(s), m
+    string, m = mv2str(m)
+    return Path(string), m
 
 
 def mv2dict(m: memoryview) -> Tuple[Dict[Any, Any], memoryview]:
@@ -97,8 +89,8 @@ def mv2list(m: memoryview) -> Tuple[List[Any], memoryview]:
 
 
 def mv2set(m: memoryview) -> Tuple[Set[Any], memoryview]:
-    l, m = mv2list(m)
-    return set(l), m
+    parsed, m = mv2list(m)
+    return set(parsed), m
 
 
 def mv2datetime(m: memoryview) -> Tuple[datetime, memoryview]:

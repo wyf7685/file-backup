@@ -31,13 +31,13 @@ class ByteWriter(object):
         self.__key = key
 
     def get(self) -> bytes:
-        return encrypt(self.__buffer, self.__key)
+        return encrypt(self.__buffer, key=self.__key)
 
     def _write(self, value: bytes | bytearray) -> None:
         self.__buffer.extend(value)
 
-    def _write_sign(self, value: VT) -> None:
-        self.__buffer.append(int(value))
+    def _write_sign(self, vt: VT) -> None:
+        self.__buffer.append(vt.value)
 
     def write_int(self, value: int) -> Self:
         self._write_sign(VT.Int)
