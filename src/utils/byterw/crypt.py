@@ -5,6 +5,7 @@ import random
 import string
 import sys
 from pathlib import Path
+from lzma import compress, decompress
 
 
 class CLib:
@@ -62,9 +63,14 @@ def get_charset(key: str | int | None = None) -> str:
     return "".join(m) + "="
 
 
-def encrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
-    return CLIB.encrypt(get_charset(key), base64.b64encode(data))
+def encrypt(data: bytes | bytearray, *, key: str | int | None = None, lzma: bool = False) -> bytes:
+    data = CLIB.encrypt(get_charset(key), base64.b64encode(data))
+    if lzma:
+        data = compress(data)
+    return data
 
 
-def decrypt(data: bytes | bytearray, key: str | int | None = None) -> bytes:
+def decrypt(data: bytes | bytearray, *, key: str | int | None = None, lzma: bool = False) -> bytes:
+    if lzma:
+        data = decompress(data)
     return base64.b64decode(CLIB.decrypt(get_charset(key), data))
