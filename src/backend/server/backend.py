@@ -16,11 +16,13 @@ from ..backend import Backend, BackendResult
 from ..config import parse_config
 from .config import Config
 
+config = parse_config(Config)
 HEADERS = {
     "Accept": "application/json",
     "User-Agent": f"file-backup/{VERSION} wyf7685/7.6.8.5",
+    "X-7685-Token": config.token,
 }
-config = parse_config(Config)
+
 
 class Result(BaseModel):
     success: bool = Field()
@@ -45,17 +47,12 @@ def solve_params(key: str, *data: Any) -> bytes:
 
 
 class ServerBackend(Backend):
-    # config: Config
     session: ClientSession
-    headers: Dict[str, str]
 
     @override
     @classmethod
     async def create(cls) -> Self:
         self = cls()
-        # self.config = self._parse_config(Config)
-        self.headers = deepcopy(HEADERS)
-        self.headers["X-7685-Token"] = config.token
         self.session = ClientSession()
 
         if not config.url.endswith("/"):
@@ -69,7 +66,7 @@ class ServerBackend(Backend):
         salt = str(time.time())
         hash_val = config.api_key + salt
         hash_val = md5(hash_val.encode("utf-8")).hexdigest()
-        headers = deepcopy(self.headers)
+        headers = deepcopy(HEADERS)
         headers["X-7685-Salt"] = salt
         headers["X-7685-Hash"] = hash_val
         return headers
