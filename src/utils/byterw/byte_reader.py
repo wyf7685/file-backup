@@ -12,13 +12,8 @@ from .crypt import decrypt
 class ByteReader(object):
     __buffer: memoryview
 
-    def __init__(
-        self,
-        buffer: bytes | bytearray,
-        key: str | int | None = None,
-        lzma: bool = False,
-    ) -> None:
-        self.__buffer = memoryview(decrypt(buffer, key=key, lzma=lzma))
+    def __init__(self, buffer: bytes | bytearray, key: str | int | None = None) -> None:
+        self.__buffer = memoryview(decrypt(buffer, key=key))
 
     def any(self):
         return len(self.__buffer) != 0

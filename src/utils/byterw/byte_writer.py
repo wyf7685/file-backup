@@ -25,19 +25,13 @@ from .value2ba import (
 class ByteWriter(object):
     __buffer: bytearray
     __key: str | int | None
-    __lzma: bool
 
-    def __init__(
-        self,
-        key: str | int | None = None,
-        lzma: bool = False,
-    ):
+    def __init__(self, key: str | int | None = None):
         self.__buffer = bytearray()
         self.__key = key
-        self.__lzma = lzma
 
     def get(self) -> bytes:
-        return encrypt(self.__buffer, key=self.__key, lzma=self.__lzma)
+        return encrypt(self.__buffer, key=self.__key)
 
     def _write(self, value: bytes | bytearray) -> None:
         self.__buffer.extend(value)
