@@ -64,7 +64,7 @@ class ServerBackend(Backend):
             config.url += "/"
         res = await self._request("status")
         if res.failed:
-            raise StopOperation(f"ServerBackend 状态异常: {res.message}")
+            raise StopOperation(f"ServerBackend 状态异常: {res.message!r}")
         return self
 
     def _get_headers(self) -> Dict[str, str]:
@@ -89,8 +89,10 @@ class ServerBackend(Backend):
 
         if not result.read_bool():
             return Result(success=False, message=result.read_string())
-        data = result.read_list() if result.any() else []
-        return Result(success=True, data=data)
+        received: List[Any] = []
+        while result.any():
+            received.append(result.read())
+        return Result(success=True, data=received)
 
     @override
     async def _mkdir(self, path: StrPath) -> None:
@@ -114,7 +116,7 @@ class ServerBackend(Backend):
         if res.failed:
             self.logger.error(res.message)
             return BackendError(f"列出文件夹时出错: {res.message}"), []
-        return None, sorted(res.data)
+        return None, sorted(res.data[0])
 
     @override
     async def _get_file(
@@ -128,13 +130,6 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                # res = await self._request("get_file", remote_fp)
-                # if res.success:
-                #     with local_fp.open("wb") as f:
-                #         await run_sync(f.write)(res.data[0])
-                #     return
-                # err = res.message
-                # break
                 await self.__get_multipart(local_fp, remote_fp)
                 return
             except BackendError as e:
@@ -163,13 +158,6 @@ class ServerBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                # with local_fp.open("rb+") as f:
-                #     data = await run_sync(f.read)()
-                # res = await self._request("put_file", remote_fp, data)
-                # if res.success:
-                #     return
-                # err = res.message
-                # break
                 await self.__put_multipart(local_fp, remote_fp)
                 return
             except BackendError as e:
