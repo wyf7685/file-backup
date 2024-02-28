@@ -42,7 +42,7 @@ def solve_params(key: str, *data: Any) -> bytes:
             writer.write(value.as_posix())
         elif isinstance(value, (bytes, bool, int, float)):
             writer.write(value)
-        elif isinstance(value,memoryview):
+        elif isinstance(value, memoryview):
             writer.write(bytes(value))
         elif isinstance(value, list):
             writer.write(value)  # type: ignore
@@ -235,9 +235,12 @@ class ServerBackend(Backend):
 
     async def __get_multipart(self, local_fp: Path, remote_fp: Path) -> None:
         uuid, seqs = await self.__get_prepare(remote_fp)
+        self.logger.debug(f"准备分片下载: [{Style.CYAN(uuid)}] - {Style.YELLOW(seqs)}")
         with local_fp.open("wb") as file:
             write = run_sync(file.write)
             for seq in range(seqs):
+                progress = f"{Style.YELLOW(seq)}/{Style.YELLOW(seqs)}"
+                self.logger.debug(f"下载文件块: {progress}")
                 block = await self.__get_getpart(uuid, seq)
                 await write(block)
 
@@ -248,6 +251,7 @@ class ServerBackend(Backend):
         return result.data[0]
 
     async def __put_putpart(self, uuid: str, seq: int, part: memoryview) -> None:
+        self.logger.debug(f"上传文件切片: [{Style.CYAN(uuid)}] - {Style.YELLOW(seq)}")
         result = await self._request("put_file/putpart", uuid, seq, part)
         if result.failed:
             raise BackendError(result.message)
@@ -264,13 +268,17 @@ class ServerBackend(Backend):
         while idx < len(data):
             blocks.append(memoryview(data[idx : idx + MULTIPART_SIZE]).toreadonly())
             idx += MULTIPART_SIZE
+        self.logger.debug(f"分片上传: 切片数={Style.YELLOW(len(blocks))}")
 
         uuid = await self.__put_prepare(
             [md5(i).hexdigest() for i in blocks],
             remote_fp,
         )
+        self.logger.debug(f"准备分片上传: [{Style.CYAN(uuid)}]")
 
-        for seq, block in enumerate(blocks):
-            await self.__put_putpart(uuid, seq, block)
+        await asyncio.gather(
+            *[self.__put_putpart(uuid, seq, block) for seq, block in enumerate(blocks)]
+        )
 
         await self.__put_finish(uuid)
+        self.logger.debug(f"完成分片上传: [{Style.CYAN(uuid)}]")
