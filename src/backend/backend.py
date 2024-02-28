@@ -69,11 +69,16 @@ class Backend(AbstractBackend):
     def __init__(self):
         self._logger = get_logger(self.__class__.__name__).opt(colors=True)
         self.__mkdir_cache = set()
+        self_r = Style.BLUE(repr(self), False)
+        self.logger.bind(head="del").debug(f"Create instance: {self_r}")
+
+    def __del__(self) -> None:
+        self_r = Style.BLUE(repr(self), False)
+        self.logger.bind(head="del").debug(f"Destroy instance: {self_r}")
 
     @property
     def logger(self) -> loguru.Logger:
-        frame = get_frame(1)
-        return self._logger.bind(head=frame.f_code.co_name)
+        return self._logger.bind(head=get_frame(1).f_code.co_name)
 
     @staticmethod
     def _parse_config[T](config_cls: Type[T]) -> T:

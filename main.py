@@ -14,7 +14,7 @@ def greet():
     logger.info(f"配置文件: {Style.PATH(PATH.CONFIG)}")
     logger.info(f"缓存目录: {Style.PATH(PATH.CACHE)}")
     logger.info(f"备份后端: {Style.CYAN(backend_config.type)}")
-    logger.debug(f"备份后端类: {Style.CYAN(get_backend())}")
+    logger.debug(f"备份后端类: {Style.CYAN(get_backend(), fix=False)}")
     return logger
 
 

@@ -53,12 +53,14 @@ def solve_params(key: str, *data: Any) -> bytes:
 
 class ServerBackend(Backend):
     session: ClientSession
+    __request_count: int
 
     @override
     @classmethod
     async def create(cls) -> Self:
         self = cls()
         self.session = ClientSession()
+        self.__request_count = 0
 
         if not config.url.endswith("/"):
             config.url += "/"
@@ -77,6 +79,7 @@ class ServerBackend(Backend):
         return headers
 
     async def _request(self, api: str, *params: Any) -> Result:
+        self.__request_count += 1
         url = f"{config.url}api/{api}"
         data = solve_params(config.api_key, *params)
         headers = self._get_headers()
@@ -214,6 +217,8 @@ class ServerBackend(Backend):
                     return err
 
     def __del__(self):
+        super(ServerBackend, self).__del__()
+        self._logger.debug(f"请求次数: {self.__request_count}")
         asyncio.create_task(self.session.close())
 
     async def __get_prepare(self, remote_fp: Path) -> Tuple[str, int]:
@@ -242,17 +247,17 @@ class ServerBackend(Backend):
             raise BackendError(result.message)
         return result.data[0]
 
-    async def __put_putpart(self, uuid: str, seq: int, part: memoryview):
+    async def __put_putpart(self, uuid: str, seq: int, part: memoryview) -> None:
         result = await self._request("put_file/putpart", uuid, seq, part)
         if result.failed:
             raise BackendError(result.message)
 
-    async def __put_finish(self, uuid: str):
+    async def __put_finish(self, uuid: str) -> None:
         result = await self._request("put_file/finish", uuid)
         if result.failed:
             raise BackendError(result.message)
 
-    async def __put_multipart(self, local_fp: Path, remote_fp: Path):
+    async def __put_multipart(self, local_fp: Path, remote_fp: Path) -> None:
         data = await run_sync(local_fp.read_bytes)()
         blocks: List[memoryview] = []
         idx = 0
