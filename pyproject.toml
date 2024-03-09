@@ -17,7 +17,7 @@ python-dateutil = "^2.9.0"
 [[tool.poetry.source]]
 name = "tuna"
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-priority = "default"
+priority = "primary"
 
 
 [tool.poetry.group.dev.dependencies]

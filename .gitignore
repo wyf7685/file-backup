@@ -12,7 +12,7 @@ dist/
 backup/
 data/
 logs/
-test/
+_test/
 *.exe
 test.py
 lib/
