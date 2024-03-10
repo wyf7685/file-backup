@@ -15,7 +15,7 @@ async def create(
 ) -> Dict[str, Any]:
     with ApiClient() as client:
         return await run_sync(
-            lambda: FileuploadApi(client).xpanfilecreate(
+            lambda: FileuploadApi(client).xpanfilecreate(  # type: ignore
                 access_token=config.access_token,
                 path=path,
                 isdir=0,

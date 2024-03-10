@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Tuple
 
 from src.utils import Style, run_sync
 
@@ -10,10 +10,10 @@ from ..openapi_client.api.multimediafile_api import MultimediafileApi
 from ..sdk_config import config, get_logger
 
 
-async def listall(path: str):
+async def listall(path: str)->Dict[str, Any]:
     with ApiClient() as client:
         return await run_sync(
-            lambda: MultimediafileApi(client).xpanfilelistall(
+            lambda: MultimediafileApi(client).xpanfilelistall(  # type: ignore
                 access_token=config.access_token,
                 path=path,
                 recursion=0,

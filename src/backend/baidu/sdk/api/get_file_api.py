@@ -14,10 +14,10 @@ from ..sdk_config import config, get_logger
 from .list_dir_api import listall
 
 
-async def filemetas(fsid: int):
+async def filemetas(fsid: int) -> Dict[str, Any]:
     with ApiClient() as client:
         return await run_sync(
-            lambda: MultimediafileApi(client).xpanmultimediafilemetas(
+            lambda: MultimediafileApi(client).xpanmultimediafilemetas(  # type: ignore
                 access_token=config.access_token,
                 fsids=json.dumps([fsid]),
                 thumb="0",
@@ -72,7 +72,7 @@ async def get_file(local_fp: Path, remote_fp: Path):
             f"错误码: {Style.RED(filemetas_resp['errno'])}"
         )
 
-    dlink = filemetas_resp["list"][0]["dlink"]  # type: str
+    dlink: str = filemetas_resp["list"][0]["dlink"]
     logger.debug(f"获取文件下载链接: {Style.PATH_DEBUG(dlink)}")
     dlink += f"&access_token={config.access_token}"
 

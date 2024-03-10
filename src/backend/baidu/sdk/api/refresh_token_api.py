@@ -19,9 +19,9 @@ async def refresh_token() -> None:
     logger.debug("刷新 access_token")
 
     with ApiClient() as client:
-        call = run_sync(AuthApi(client).oauth_token_refresh_token)
+        call = run_sync(AuthApi(client).oauth_token_refresh_token)  # type: ignore
         try:
-            resp = await call(
+            resp = await call(  # type: ignore
                 refresh_token=config.refresh_token,
                 client_id=config.app_id,
                 client_secret=config.app_secret,
@@ -32,6 +32,6 @@ async def refresh_token() -> None:
 
     config.access_token = resp["access_token"]
     config.refresh_token = resp["refresh_token"]
-    config.expire = int(time.time() + resp["expires_in"])
+    config.expire = int(time.time() + resp["expires_in"])  # type: ignore
     config.save()
     _refreshing = False

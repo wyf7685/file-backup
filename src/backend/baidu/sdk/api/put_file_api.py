@@ -28,7 +28,7 @@ async def process_file(local_fp: Path) -> Tuple[int, List[bytes]]:
     :param local_fp: 本地文件路径
     """
 
-    block_data = []
+    block_data: List[bytes] = []
     file_size = 0
     with local_fp.open("rb") as f:
         read = run_sync(f.read)
@@ -49,7 +49,7 @@ async def precreate(path: str, file_size: int, block_md5: List[str]) -> Dict[str
 
     with ApiClient() as client:
         return await run_sync(
-            lambda: FileuploadApi(client).xpanfileprecreate(
+            lambda: FileuploadApi(client).xpanfileprecreate(  # type: ignore
                 access_token=config.access_token,
                 path=path,
                 isdir=0,
@@ -76,7 +76,7 @@ async def upload(
 
     with ApiClient() as client:
         return await run_sync(
-            lambda: FileuploadApi(client).pcssuperfile2(
+            lambda: FileuploadApi(client).pcssuperfile2(  # type: ignore
                 access_token=config.access_token,
                 partseq=str(partseq),
                 path=path,
@@ -99,7 +99,7 @@ async def create(
     """
     with ApiClient() as client:
         return await run_sync(
-            lambda: FileuploadApi(client).xpanfilecreate(
+            lambda: FileuploadApi(client).xpanfilecreate(  # type: ignore
                 access_token=config.access_token,
                 path=path,
                 isdir=0,
