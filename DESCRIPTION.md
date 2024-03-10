@@ -34,13 +34,15 @@
 
     处理备份任务。
 
-  - `backup_host.py`
-
-    在后台定时执行备份任务。
-
   - `backup_cmd.py`
 
     注册备份相关的控制台命令。
+
+  - `host/`
+    
+    在后台定时执行备份任务。
+
+    对外导出 `start`, `stop`, `run_backup` 管理后台任务。
 
 - `src/config/`
 
@@ -140,9 +142,9 @@
 
   - `strategy.py`
 
-    定义 `BaseStrategy` 抽象类，处理备份和恢复的具体逻辑。
+    定义 `AbstractStrategy` 抽象类，处理备份和恢复的具体逻辑。
 
-    继承 `BaseStrategy` 定义 `Strategy` 抽象类，实现备份记录处理逻辑和一些共用代码。
+    继承 `AbstractStrategy` 定义 `Strategy` 抽象类，实现备份记录处理逻辑和一些共用代码。
 
   - `protocol.py`
 
