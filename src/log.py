@@ -59,8 +59,8 @@ class Filter:
 
 
 class Format:
-    __debug_level_no: int = logger.level("DEBUG").no
-    fmt_arr = [
+    __DEBUG_LEVEL_NO: int = logger.level("DEBUG").no
+    fmt = [
         "<g>{time:MM-DD HH:mm:ss}</g> [<lvl>{level}</lvl>]",
         "<c><u>{name}</u></c> |",
         "<c>{file}</c>:<c>{line}</c> |",
@@ -68,7 +68,7 @@ class Format:
     ]
 
     def __call__(self, record: loguru.Record) -> str:
-        fmt = self.fmt_arr.copy()
+        fmt = self.fmt.copy()
 
         if name := record["extra"].get("name"):
             fmt[1] = fmt[1].format(name=name)
@@ -76,7 +76,7 @@ class Format:
         if head := record["extra"].get("head"):
             fmt.insert(3, f"<m>{head}</m> |")
 
-        if record["level"].no > self.__debug_level_no:
+        if record["level"].no > self.__DEBUG_LEVEL_NO:
             # Not debug, remove file/line information
             fmt.pop(2)
 
