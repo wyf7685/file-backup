@@ -3,7 +3,7 @@ import time
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Self, Tuple, override
+from typing import Any, Dict, List, Literal, Self, Tuple, final, override
 
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
@@ -51,6 +51,7 @@ def solve_params(key: str, *data: Any) -> bytes:
     return writer.get()
 
 
+@final
 class ServerBackend(Backend):
     session: ClientSession
     __request_count: int
@@ -66,13 +67,12 @@ class ServerBackend(Backend):
             config.url += "/"
         res = await self._request("status")
         if res.failed:
-            raise StopOperation(f"ServerBackend 状态异常: {res.message!r}")
+            raise StopOperation(f"ServerBackend 状态异常: {res.message}")
         return self
 
     def _get_headers(self) -> Dict[str, str]:
         salt = str(time.time())
-        hash_val = config.api_key + salt
-        hash_val = md5(hash_val.encode("utf-8")).hexdigest()
+        hash_val = md5(ByteWriter(config.api_key).write(salt).get()).hexdigest()
         headers = deepcopy(HEADERS)
         headers["X-7685-Salt"] = salt
         headers["X-7685-Hash"] = hash_val
@@ -217,9 +217,9 @@ class ServerBackend(Backend):
                     return err
 
     def __del__(self):
-        super(ServerBackend, self).__del__()
         self._logger.debug(f"请求次数: {self.__request_count}")
         asyncio.create_task(self.session.close())
+        super(ServerBackend, self).__del__()
 
     async def __get_prepare(self, remote_fp: Path) -> Tuple[str, int]:
         result = await self._request("get_file/prepare", remote_fp)
@@ -239,7 +239,7 @@ class ServerBackend(Backend):
         with local_fp.open("wb") as file:
             write = run_sync(file.write)
             for seq in range(seqs):
-                progress = f"{Style.YELLOW(seq)}/{Style.YELLOW(seqs)}"
+                progress = f"{Style.YELLOW(seq+1)}/{Style.YELLOW(seqs)}"
                 self.logger.debug(f"下载文件块: {progress}")
                 block = await self.__get_getpart(uuid, seq)
                 await write(block)

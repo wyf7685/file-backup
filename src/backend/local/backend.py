@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import List, Literal, Self, Tuple, override
+from typing import List, Literal, Self, Tuple, final, override
 
 from src.const import StrPath
 from src.const.exceptions import BackendError
@@ -13,8 +13,10 @@ from .config import Config
 config = parse_config(Config)
 
 
+@final
 class LocalBackend(Backend):
     root: Path
+    CHUNK_SIZE: int = 4 * 1024 * 1024  # 4 MB
 
     @classmethod
     @override
@@ -74,7 +76,7 @@ class LocalBackend(Backend):
                 with remote_fp.open("rb+") as fin, local_fp.open("wb") as fout:
                     read = run_sync(fin.read)
                     write = run_sync(fout.write)
-                    while block := await read(4096):
+                    while block := await read(self.CHUNK_SIZE):
                         await write(block)
                 return
             except Exception as e:
@@ -106,7 +108,7 @@ class LocalBackend(Backend):
                 with local_fp.open("rb+") as fin, remote.open("wb") as fout:
                     read = run_sync(fin.read)
                     write = run_sync(fout.write)
-                    while block := await read(4096):
+                    while block := await read(self.CHUNK_SIZE):
                         await write(block)
 
                 return
@@ -123,7 +125,7 @@ class LocalBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                shutil.copytree(self.root / remote_fp, local_fp)
+                await run_sync(shutil.copytree)(self.root / remote_fp, local_fp)
                 return
             except Exception as e:
                 err = e
@@ -146,7 +148,7 @@ class LocalBackend(Backend):
         err = None
         for _ in range(max_try):
             try:
-                shutil.copytree(local_fp, remote_fp)
+                await run_sync(shutil.copytree)(local_fp, remote_fp)
                 return
             except Exception as e:
                 err = e

@@ -70,11 +70,11 @@ class Backend(AbstractBackend):
         self._logger = get_logger(self.__class__.__name__).opt(colors=True)
         self.__mkdir_cache = set()
         self_r = Style.BLUE(repr(self), False)
-        self.logger.bind(head="del").debug(f"Create instance: {self_r}")
+        self._logger.bind(head="create").debug(f"Create instance: {self_r}")
 
     def __del__(self) -> None:
         self_r = Style.BLUE(repr(self), False)
-        self.logger.bind(head="del").debug(f"Destroy instance: {self_r}")
+        self._logger.bind(head="delete").debug(f"Destroy instance: {self_r}")
 
     @property
     def logger(self) -> loguru.Logger:

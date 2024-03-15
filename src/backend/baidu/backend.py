@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Literal, Tuple, override
+from typing import List, Literal, Tuple, final, override
 
 from src.const import StrPath
 from src.utils import Style
@@ -10,6 +10,7 @@ from .sdk import get_file, list_dir, mkdir, put_file, refresh_token
 from .sdk.exceptions import BackendError, BaiduError
 
 
+@final
 class BaiduBackend(Backend):
     @override
     @classmethod
