@@ -38,27 +38,27 @@ class AbstractBackend(metaclass=ABCMeta):
 
     @abstractmethod
     async def list_dir(
-        self, path: Path = Path()
+        self, path: StrPath = Path()
     ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]: ...
 
     @abstractmethod
     async def get_file(
-        self, local_fp: Path, remote_fp: Path, max_try: int = 3
+        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def put_file(
-        self, local_fp: Path, remote_fp: Path, max_try: int = 3
+        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def get_tree(
-        self, local_fp: Path, remote_fp: Path, max_try: int = 3
+        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def put_tree(
-        self, local_fp: Path, remote_fp: Path, max_try: int = 3
+        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult: ...
 
 
@@ -122,10 +122,10 @@ class Backend(AbstractBackend):
 
     @override
     async def mkdir(self, path: StrPath) -> None:
-        if path in self.__mkdir_cache:
-            return
         if isinstance(path, str):
             path = Path(path)
+        if path in self.__mkdir_cache:
+            return
         self.__mkdir_cache.add(path)
         self.logger.debug(f"创建目录: {_color(path)}")
 

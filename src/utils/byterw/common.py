@@ -36,19 +36,3 @@ class VT(IntEnum):
     Datetime = 9
     Path = 10
     Model = 11
-
-
-__I2VT: List[VT] = [
-    VT.Null,
-    VT.Int,
-    VT.Float,
-    VT.Bool,
-    VT.Str,
-    VT.Bytes,
-    VT.Dict,
-    VT.List,
-    VT.Set,
-    VT.Datetime,
-    VT.Path,
-    VT.Model,
-]

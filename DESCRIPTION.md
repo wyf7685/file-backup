@@ -162,9 +162,9 @@
 
     一些常用且方便的函数。
 
-  - `typed_queue.py`
+  - `json_path.py`
 
-    继承 `queue.Queue` 类实现的同名类，不改变执行逻辑，添加了泛型类型注解支持。
+    定义 `dump` 和 `dumps` ，功能同标准库 `json` ，在序列化 `pathlib.Path` 时调用 `Path.as_posix()`，以在不同平台上获得统一的结果。
 
   - `log_style.py`
 
