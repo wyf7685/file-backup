@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-from src import *
+from src import PATH, VERSION, BackupHost, Console, Style, get_logger
 
 
 def greet():
