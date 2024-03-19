@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import List, Literal, Tuple, final, override
 
-from src.const import StrPath
 from src.utils import Style
 from src.utils import mkdir as local_mkdir
 
@@ -20,24 +19,18 @@ class BaiduBackend(Backend):
         return self
 
     @override
-    async def _mkdir(self, path: StrPath) -> None:
-        if not isinstance(path, Path):
-            path = Path(path)
-
+    async def _mkdir(self, path: Path) -> None:
         await mkdir(path)
 
     @override
-    async def _rmdir(self, path: StrPath) -> None:
+    async def _rmdir(self, path: Path) -> None:
         # raise NotImplemented
         ...
 
     @override
     async def _list_dir(
-        self, path: StrPath = "."
+        self, path: Path = Path()
     ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
-        if isinstance(path, str):
-            path = Path(path)
-
         try:
             return None, sorted(await list_dir(path))
         except BaiduError as err:
@@ -46,13 +39,8 @@ class BaiduBackend(Backend):
 
     @override
     async def _get_file(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult:
-        if isinstance(local_fp, str):
-            local_fp = Path(local_fp)
-        if isinstance(remote_fp, str):
-            remote_fp = Path(remote_fp)
-
         err = None
         for _ in range(max_try):
             try:
@@ -66,12 +54,8 @@ class BaiduBackend(Backend):
 
     @override
     async def _put_file(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult:
-        if isinstance(local_fp, str):
-            local_fp = Path(local_fp)
-        if isinstance(remote_fp, str):
-            remote_fp = Path(remote_fp)
         if not local_fp.is_file():
             msg = f"上传文件失败: {Style.PATH_DEBUG(local_fp)} 不存在"
             self.logger.debug(msg)
@@ -90,13 +74,8 @@ class BaiduBackend(Backend):
 
     @override
     async def _get_tree(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult:
-        if isinstance(remote_fp, str):
-            remote_fp = Path(remote_fp)
-        if isinstance(local_fp, str):
-            local_fp = Path(local_fp)
-
         err, res = await self.list_dir(remote_fp)
         if err:
             return err
@@ -113,12 +92,8 @@ class BaiduBackend(Backend):
 
     @override
     async def _put_tree(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult:
-        if isinstance(remote_fp, str):
-            remote_fp = Path(remote_fp)
-        if isinstance(local_fp, str):
-            local_fp = Path(local_fp)
         if not local_fp.exists() or not local_fp.is_dir():
             msg = f"上传目录失败: {Style.PATH_DEBUG(local_fp)} 不存在"
             self.logger.debug(msg)

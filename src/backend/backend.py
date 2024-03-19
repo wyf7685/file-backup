@@ -38,27 +38,27 @@ class AbstractBackend(metaclass=ABCMeta):
 
     @abstractmethod
     async def list_dir(
-        self, path: StrPath = "."
+        self, path: Path = Path()
     ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]: ...
 
     @abstractmethod
     async def get_file(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def put_file(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def get_tree(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def put_tree(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
 
@@ -85,34 +85,34 @@ class Backend(AbstractBackend):
         return parse_config(config_cls)
 
     @abstractmethod
-    async def _mkdir(self, path: StrPath) -> None: ...
+    async def _mkdir(self, path: Path) -> None: ...
 
     @abstractmethod
-    async def _rmdir(self, path: StrPath) -> None: ...
+    async def _rmdir(self, path: Path) -> None: ...
 
     @abstractmethod
     async def _list_dir(
-        self, path: StrPath = "."
+        self, path: Path = Path()
     ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]: ...
 
     @abstractmethod
     async def _get_file(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def _put_file(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def _get_tree(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @abstractmethod
     async def _put_tree(
-        self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
+        self, local_fp: Path, remote_fp: Path, max_try: int = 3
     ) -> BackendResult: ...
 
     @classmethod
@@ -124,17 +124,23 @@ class Backend(AbstractBackend):
     async def mkdir(self, path: StrPath) -> None:
         if path in self.__mkdir_cache:
             return
-        self.__mkdir_cache.add(Path(path))
+        if isinstance(path, str):
+            path = Path(path)
+        self.__mkdir_cache.add(path)
         self.logger.debug(f"创建目录: {_color(path)}")
 
     @override
     async def rmdir(self, path: StrPath) -> None:
+        if isinstance(path, str):
+            path = Path(path)
         self.logger.debug(f"删除目录: {_color(path)}")
 
     @override
     async def list_dir(
         self, path: StrPath = "."
     ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
+        if isinstance(path, str):
+            path = Path(path)
         self.logger.debug(f"列出目录: {_color(path)}")
         return await self._list_dir(path)
 
@@ -142,6 +148,10 @@ class Backend(AbstractBackend):
     async def get_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult:
+        if isinstance(local_fp, str):
+            local_fp = Path(local_fp)
+        if isinstance(remote_fp, str):
+            remote_fp = Path(remote_fp)
         self.logger.debug(f"下载文件: {_color(remote_fp)} -> {_color(local_fp)}")
         return await self._get_file(local_fp, remote_fp, max_try)
 
@@ -149,6 +159,10 @@ class Backend(AbstractBackend):
     async def put_file(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult:
+        if isinstance(local_fp, str):
+            local_fp = Path(local_fp)
+        if isinstance(remote_fp, str):
+            remote_fp = Path(remote_fp)
         self.logger.debug(f"上传文件: {_color(local_fp)} -> {_color(remote_fp)}")
         return await self._put_file(local_fp, remote_fp, max_try)
 
@@ -156,6 +170,10 @@ class Backend(AbstractBackend):
     async def get_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult:
+        if isinstance(local_fp, str):
+            local_fp = Path(local_fp)
+        if isinstance(remote_fp, str):
+            remote_fp = Path(remote_fp)
         self.logger.debug(f"下载目录: {_color(remote_fp)} -> {_color(local_fp)}")
         return await self._get_tree(local_fp, remote_fp, max_try)
 
@@ -163,5 +181,9 @@ class Backend(AbstractBackend):
     async def put_tree(
         self, local_fp: StrPath, remote_fp: StrPath, max_try: int = 3
     ) -> BackendResult:
+        if isinstance(local_fp, str):
+            local_fp = Path(local_fp)
+        if isinstance(remote_fp, str):
+            remote_fp = Path(remote_fp)
         self.logger.debug(f"上传目录: {_color(local_fp)} -> {_color(remote_fp)}")
         return await self._put_tree(local_fp, remote_fp, max_try)
