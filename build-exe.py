@@ -22,6 +22,7 @@ def build_command(poetry: bool = False, dist: str = "."):
         "--hidden-import src.backend.local",
         "--hidden-import src.backend.server",
         "--hidden-import src.backend.baidu",
+        "--hidden-import src.backend.tx_cos",
         "--hidden-import src.strategy.compress",
         "--hidden-import src.strategy.increment",
         "--hidden-import src.backend.backend_cmd",
