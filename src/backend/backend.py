@@ -69,12 +69,15 @@ class Backend(AbstractBackend):
     def __init__(self):
         self._logger = get_logger(self.__class__.__name__).opt(colors=True)
         self.__mkdir_cache = set()
-        self_r = Style.BLUE(repr(self), False)
-        self._logger.bind(head="create").debug(f"Create instance: {self_r}")
+        self_r = Style.BLUE(repr(self))
+        self._logger.bind(head="create").debug(f"创建实例: {self_r}")
 
     def __del__(self) -> None:
-        self_r = Style.BLUE(repr(self), False)
-        self._logger.bind(head="delete").debug(f"Destroy instance: {self_r}")
+        self_r = Style.BLUE(repr(self))
+        self._logger.bind(head="delete").debug(f"销毁实例: {self_r}")
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}>"
 
     @property
     def logger(self) -> loguru.Logger:
@@ -93,51 +96,51 @@ class Backend(AbstractBackend):
     @abstractmethod
     async def _list_dir(
         self, path: Path = Path()
-    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]: ...
+    ) -> List[Tuple[Literal["d", "f"], str]]: ...
 
     @abstractmethod
     async def _get_file(
         self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult: ...
+    ) -> None: ...
 
     @abstractmethod
     async def _put_file(
         self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult: ...
+    ) -> None: ...
 
     async def _get_tree(
         self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult:
+    ) -> None:
         err, res = await self.list_dir(remote_fp)
         if err:
-            return err
+            raise err
 
         for t, name in res:
             local = local_fp / name
             remote = remote_fp / name
             if t == "d":
                 if err := await self.get_tree(mkdir(local), remote, max_try):
-                    return err
+                    raise err
             elif t == "f":
                 if err := await self.get_file(local, remote, max_try):
-                    return err
+                    raise err
 
     async def _put_tree(
         self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult:
+    ) -> None:
         if not local_fp.exists() or not local_fp.is_dir():
             msg = f"上传目录失败: {Style.PATH_DEBUG(local_fp)} 不存在"
             self.logger.debug(msg)
-            return BackendError(msg)
+            raise BackendError(msg)
 
         for p in local_fp.iterdir():
             if p.is_dir():
                 await self.mkdir(remote_fp / p.name)
                 if err := await self.put_tree(p, remote_fp / p.name, max_try):
-                    return err
+                    raise err
             elif p.is_file():
                 if err := await self.put_file(p, remote_fp / p.name, max_try):
-                    return err
+                    raise err
 
     @classmethod
     @override
@@ -152,12 +155,14 @@ class Backend(AbstractBackend):
             return
         self.__mkdir_cache.add(path)
         self.logger.debug(f"创建目录: {_color(path)}")
+        await self._mkdir(path)
 
     @override
     async def rmdir(self, path: StrPath) -> None:
         if isinstance(path, str):
             path = Path(path)
         self.logger.debug(f"删除目录: {_color(path)}")
+        await self._rmdir(path)
 
     @override
     async def list_dir(
@@ -166,7 +171,10 @@ class Backend(AbstractBackend):
         if isinstance(path, str):
             path = Path(path)
         self.logger.debug(f"列出目录: {_color(path)}")
-        return await self._list_dir(path)
+        try:
+            return None, await self._list_dir(path)
+        except BackendError as err:
+            return err, []
 
     @override
     async def get_file(
@@ -177,7 +185,11 @@ class Backend(AbstractBackend):
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         self.logger.debug(f"下载文件: {_color(remote_fp)} -> {_color(local_fp)}")
-        return await self._get_file(local_fp, remote_fp, max_try)
+
+        try:
+            await self._get_file(local_fp, remote_fp, max_try)
+        except BackendError as err:
+            return err
 
     @override
     async def put_file(
@@ -188,7 +200,11 @@ class Backend(AbstractBackend):
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         self.logger.debug(f"上传文件: {_color(local_fp)} -> {_color(remote_fp)}")
-        return await self._put_file(local_fp, remote_fp, max_try)
+
+        try:
+            await self._put_file(local_fp, remote_fp, max_try)
+        except BackendError as err:
+            return err
 
     @override
     async def get_tree(
@@ -199,7 +215,11 @@ class Backend(AbstractBackend):
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         self.logger.debug(f"下载目录: {_color(remote_fp)} -> {_color(local_fp)}")
-        return await self._get_tree(local_fp, remote_fp, max_try)
+
+        try:
+            await self._get_tree(local_fp, remote_fp, max_try)
+        except BackendError as err:
+            return err
 
     @override
     async def put_tree(
@@ -210,4 +230,8 @@ class Backend(AbstractBackend):
         if isinstance(remote_fp, str):
             remote_fp = Path(remote_fp)
         self.logger.debug(f"上传目录: {_color(local_fp)} -> {_color(remote_fp)}")
-        return await self._put_tree(local_fp, remote_fp, max_try)
+
+        try:
+            await self._put_tree(local_fp, remote_fp, max_try)
+        except BackendError as err:
+            return err

@@ -12,7 +12,7 @@ from src.const import VERSION
 from src.const.exceptions import BackendError, StopOperation
 from src.utils import ByteReader, ByteWriter, Style, run_sync
 
-from ..backend import Backend, BackendResult
+from ..backend import Backend
 from ..config import parse_config
 from .config import Config
 
@@ -114,38 +114,38 @@ class ServerBackend(Backend):
     @override
     async def _list_dir(
         self, path: Path = Path()
-    ) -> Tuple[BackendResult, List[Tuple[Literal["d", "f"], str]]]:
+    ) -> List[Tuple[Literal["d", "f"], str]]:
         res = await self._request("list_dir", path)
         if res.failed:
             self.logger.error(res.message)
-            return BackendError(f"列出文件夹时出错: {res.message}"), []
-        return None, sorted(res.data[0])
+            raise BackendError(f"列出文件夹时出错: {res.message}")
+        return sorted(res.data[0])
 
     @override
     async def _get_file(
         self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult:
+    ) -> None:
         err = None
         for _ in range(max_try):
             try:
                 await self.__get_multipart(local_fp, remote_fp)
                 return
-            except BackendError as e:
-                err = e.msg
             except Exception as e:
                 err = e
         msg = f"下载文件 {Style.PATH_DEBUG(remote_fp)} 时出现异常: {Style.RED(err)}"
         self.logger.debug(msg)
-        return BackendError(msg)
+        if isinstance(err, BackendError):
+            raise err
+        raise BackendError(msg) from err
 
     @override
     async def _put_file(
         self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult:
+    ) -> None:
         if not local_fp.is_file():
             msg = f"上传文件失败: {Style.PATH_DEBUG(local_fp)} 不存在"
             self.logger.debug(msg)
-            return BackendError(msg)
+            raise BackendError(msg)
 
         await self.mkdir(remote_fp.parent)
 
@@ -154,13 +154,13 @@ class ServerBackend(Backend):
             try:
                 await self.__put_multipart(local_fp, remote_fp)
                 return
-            except BackendError as e:
-                err = e.msg
             except Exception as e:
                 err = e
         msg = f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {Style.RED(err)}"
         self.logger.debug(msg)
-        return BackendError(msg)
+        if isinstance(err, BackendError):
+            raise err
+        raise BackendError(msg) from err
 
     def __del__(self):
         self._logger.debug(f"请求次数: {self.__request_count}")
