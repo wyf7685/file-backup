@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import List, Literal, Tuple, final, override
 
 from src.utils import Style
-from src.utils import mkdir as local_mkdir
 
 from ..backend import Backend, BackendResult
 from .sdk import get_file, list_dir, mkdir, put_file, refresh_token
@@ -71,39 +70,3 @@ class BaiduBackend(Backend):
         self.logger.debug(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常")
         self.logger.debug(err)
         return BackendError(f"上传文件 {Style.PATH_DEBUG(local_fp)} 时出现异常: {err}")
-
-    @override
-    async def _get_tree(
-        self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult:
-        err, res = await self.list_dir(remote_fp)
-        if err:
-            return err
-
-        for t, name in res:
-            local = local_fp / name
-            remote = remote_fp / name
-            if t == "d":
-                if err := await self.get_tree(local_mkdir(local), remote, max_try):
-                    return err
-            elif t == "f":
-                if err := await self.get_file(local, remote, max_try):
-                    return err
-
-    @override
-    async def _put_tree(
-        self, local_fp: Path, remote_fp: Path, max_try: int = 3
-    ) -> BackendResult:
-        if not local_fp.exists() or not local_fp.is_dir():
-            msg = f"上传目录失败: {Style.PATH_DEBUG(local_fp)} 不存在"
-            self.logger.debug(msg)
-            return BackendError(msg)
-
-        for p in local_fp.iterdir():
-            if p.is_dir():
-                await self.mkdir(remote_fp / p.name)
-                if err := await self.put_tree(p, remote_fp / p.name, max_try):
-                    return err
-            elif p.is_file():
-                if err := await self.put_file(p, remote_fp / p.name, max_try):
-                    return err

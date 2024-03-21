@@ -6,7 +6,7 @@ from . import path as _path
 VERSION = "0.4.0"
 PATH = _path
 
-type BackendType = _t.Literal["local", "server", "baidu"]
+type BackendType = _t.Literal["local", "server", "baidu", "tx_cos"]
 type BackupMode = _t.Literal["increment", "compress"]
 type BackupUpdateType = _t.Literal["file", "dir", "del"]
 type StrPath = _t.Union[str, _p.Path]

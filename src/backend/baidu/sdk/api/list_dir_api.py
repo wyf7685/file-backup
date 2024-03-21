@@ -10,7 +10,7 @@ from ..openapi_client.api.multimediafile_api import MultimediafileApi
 from ..sdk_config import config, get_logger
 
 
-async def listall(path: str)->Dict[str, Any]:
+async def listall(path: str) -> Dict[str, Any]:
     with ApiClient() as client:
         return await run_sync(
             lambda: MultimediafileApi(client).xpanfilelistall(  # type: ignore

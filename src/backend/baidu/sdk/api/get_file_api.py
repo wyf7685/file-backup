@@ -53,7 +53,9 @@ async def get_file(local_fp: Path, remote_fp: Path):
 
     fsid = get_fsid(listall_resp["list"], path.name)
     if fsid is None:
-        raise BaiduGetFileError(f"获取文件 {Style.PATH(remote_fp)} 的fsid失败: 文件不存在")
+        raise BaiduGetFileError(
+            f"获取文件 {Style.PATH(remote_fp)} 的fsid失败: 文件不存在"
+        )
     logger.debug(f"获取文件fsid: {Style.GREEN(fsid)}")
 
     logger.debug(f"获取文件信息: {Style.PATH_DEBUG(remote_fp)}")

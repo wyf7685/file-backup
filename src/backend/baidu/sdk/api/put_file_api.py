@@ -156,7 +156,9 @@ async def put_file(local_fp: Path, remote_fp: Path) -> None:
     try:
         create_resp = await create(path, file_size, upload_id, block_md5)
     except ApiException as err:
-        raise BaiduUploadCreateError(f"远程合并切片文件时遇到错误:\n{Style.RED(err)}") from err
+        raise BaiduUploadCreateError(
+            f"远程合并切片文件时遇到错误:\n{Style.RED(err)}"
+        ) from err
 
     # 处理创建文件接口返回值
     if create_resp["errno"] != 0:

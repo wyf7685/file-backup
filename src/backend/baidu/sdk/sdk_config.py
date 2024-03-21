@@ -16,6 +16,7 @@ class Config(BaseModel):
     def save(self):
         save_config(self)
 
+
 def get_logger(name: str):
     from src.log import get_logger
 
@@ -23,4 +24,3 @@ def get_logger(name: str):
 
 
 config: Config = parse_config(Config)
-
