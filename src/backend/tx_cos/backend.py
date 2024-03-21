@@ -7,7 +7,7 @@ from src.utils import Style, run_sync
 from ..backend import Backend, BackendResult
 from ..config import parse_config
 from .config import Config
-from .sdk import init_client, get_file, put_file, list_dir
+from .sdk import init_client, get_file, put_file, list_dir, rm_dir
 
 config = parse_config(Config)
 init_client(
@@ -27,7 +27,7 @@ class TencentCOSBackend(Backend):
 
     @override
     async def _rmdir(self, path: Path) -> None:
-        raise NotImplemented
+        await run_sync(rm_dir)(path.as_posix())
 
     @override
     async def _list_dir(

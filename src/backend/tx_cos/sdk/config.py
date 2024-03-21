@@ -5,10 +5,10 @@ from qcloud_cos import CosConfig, CosS3Client  # type: ignore
 
 from src.log import LoguruHandler
 
-qcloud_cos_logger = logging.getLogger("qcloud_cos")
-qcloud_cos_logger.handlers = [LoguruHandler()]
-qcloud_cos_logger.propagate = False
-qcloud_cos_logger.level = logging.WARNING
+_logger = logging.getLogger("qcloud_cos")
+_logger.handlers = [LoguruHandler()]
+_logger.propagate = False
+_logger.level = logging.WARNING
 
 ROOT = Path("storage")
 bucket: str = ""
