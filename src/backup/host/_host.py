@@ -11,7 +11,6 @@ from ..backup import Backup
 __logger = get_logger("BackupHost").opt(colors=True)
 __last_run: Dict[str, datetime] = {}
 __running: bool = False
-__task: asyncio.Task[None]
 __backup_task: Dict[str, asyncio.Task[None]] = {}
 
 
@@ -51,7 +50,7 @@ async def start() -> None:
     __logger.info(f"正在初始化 {Style.GREEN('BackupHost')} ...")
     __logger.info("开始备份...")
     __running = True
-    __task = asyncio.create_task(__run())
+    await __run()
 
 
 async def stop() -> None:
@@ -61,9 +60,6 @@ async def stop() -> None:
 
     __running = False
     __logger.info("等待备份进程退出...")
-    while not __task.done():
-        await asyncio.sleep(0.05)
-
     for task in __backup_task.values():
         while not task.done():
             await asyncio.sleep(0.05)

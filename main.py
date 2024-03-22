@@ -19,8 +19,7 @@ def greet():
 
 
 async def main_async() -> None:
-    await BackupHost.start()
-    await Console.start()
+    await asyncio.gather(BackupHost.start(), Console.start())
 
 
 def main() -> None:
